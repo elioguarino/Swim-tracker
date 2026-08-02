@@ -201,16 +201,11 @@ def create_new():
 
     if st.button("confirm"):
         try:
-            auth_response = supabase.auth.sign_up({
+            supabase.auth.sign_up({
                 "email": new_email,
-                "password": new_pas
+                "password": new_pas,
+                "options": {"data": {"pending_username": new_user}}
             })
-            user_id = auth_response.user.id
-
-            supabase.table("profiles").insert({
-                "id": user_id,
-                "username": new_user
-            }).execute()
 
             st.session_state.show_register = False
             st.success("Account created! Check your email to confirm, then log in")
