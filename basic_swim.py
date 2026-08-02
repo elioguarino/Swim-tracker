@@ -98,14 +98,23 @@ st.markdown("""
     }
 
     div[class*="st-key-log_swim_btn"] {
-    position: relative;
-    top: -25px;
+        position: relative;
+        top: -25px;
+        left: 142px;
     }
 
-    div[class*="st-key-log_swim_btn"],
     div[class*="st-key-delete_swim_btn"] {
         position: relative;
         left: 142px;
+    }
+
+    @media (max-width: 640px) {
+        div[class*="st-key-log_swim_btn"],
+        div[class*="st-key-delete_swim_btn"] {
+            position: static !important;
+            top: 0 !important;
+            left: 0 !important;
+        }
     }
 
     button[data-testid="stNumberInputStepUp"],
@@ -469,8 +478,8 @@ def main():
     top_left, top_right = st.columns([5, 1])
     with top_left:
         st.markdown(
-            "<h1 style='font-family: Georgia, serif; font-size: 64px; font-weight: 700; "
-            "color: #00008B; letter-spacing: 1px; margin: 0;'>Swimmer</h1>",
+            "<h1 style='font-family: Georgia, serif; font-size: clamp(28px, 8vw, 64px); "
+            "font-weight: 700; color: #00008B; letter-spacing: 1px; margin: 0;'>Swimmer</h1>",
             unsafe_allow_html=True
         )
 
@@ -541,7 +550,7 @@ def main():
     # ------------------------------------------------------------
     # PLOT GRAPH
     # ------------------------------------------------------------
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(8, 4.5))
     fig.patch.set_facecolor("#73E6FF")
     ax.set_facecolor("#9bedff")
 
@@ -596,7 +605,7 @@ def main():
     # LOG / DELETE SWIM
     # ------------------------------------------------------------
     with col2:
-        a1 = st.button("log swim", width = 200, key="log_swim_btn")
+        a1 = st.button("log swim", width = "stretch", key="log_swim_btn")
         if a1:
             try:
                 mtrs = lengths * 10
@@ -612,7 +621,7 @@ def main():
             except Exception as e:
                 st.error(f"error:{e}")
 
-        delete_last_swim = st.button("Delete last swim", width = 200, key="delete_swim_btn")
+        delete_last_swim = st.button("Delete last swim", width = "stretch", key="delete_swim_btn")
         if delete_last_swim:
             try:
                 last_swim = supabase.table("swims") \
