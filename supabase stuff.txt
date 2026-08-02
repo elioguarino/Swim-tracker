@@ -1,0 +1,6 @@
+password: Thing-129supabase
+
+API URL: https://ozwzmfweqwqbgvvmqyml.supabase.co
+
+publishable key: sb_publishable_GuzjXsU7nQWeFfFtbTEVWw_ekO3T0SC
+
