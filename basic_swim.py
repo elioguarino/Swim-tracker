@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator, MultipleLocator
 from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageOps
 from supabase import create_client, Client
 
 
@@ -173,6 +173,8 @@ def make_circular(image_source, border_color, size=200, border_width=10, padding
     else:
         img = Image.open(image_source).convert("RGBA")
 
+    img = ImageOps.exif_transpose(img)
+    img = img.convert("RGBA")
     img = img.resize((size, size))
 
     canvas = Image.new("RGBA", (canvas_size, canvas_size), (0, 0, 0, 0))
