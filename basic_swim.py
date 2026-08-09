@@ -751,6 +751,22 @@ def settings_page():
                 st.rerun()
             except Exception as e:
                 st.error(f"error: {e}")
+    
+    if st.button(":red[Delete my account]", key="delete_account_btn"):
+        st.session_state.confirm_delete = True
+
+    if st.session_state.get("confirm_delete"):
+        st.warning("This is permanent and cannot be undone.")
+        if st.button("Yes, permanently delete my account"):
+            try:
+                supabase.rpc("delete_own_account").execute()
+                supabase.auth.sign_out()
+                st.session_state.logged_in = False
+                st.session_state.current_user = None
+                st.success("Account deleted.")
+                st.rerun()
+            except Exception as e:
+                st.error(f"error: {e}")
 
     if st.button("←back"):
         st.session_state.show_settings = False
