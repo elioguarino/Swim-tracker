@@ -414,57 +414,57 @@ def main():
                 )
                 search_results.data = sorted_groups[:5]
 
-                # groups user is already in, so they can't join again
-                my_groups = supabase.table("group_members")\
-                    .select("group_id")\
-                    .eq("user_id", st.session_state.current_user_id)\
-                    .execute()
-                my_groups_id = {m["group_id"] for m in my_groups.data}
+            # groups user is already in, so they can't join again
+            my_groups = supabase.table("group_members")\
+                .select("group_id")\
+                .eq("user_id", st.session_state.current_user_id)\
+                .execute()
+            my_groups_id = {m["group_id"] for m in my_groups.data}
 
-                if search_results.data:
-                    for g in search_results.data:
-                        lock = " 🔒" if g["is_private"] else ""
-                        st.write(f"{lock} {g['name']}")
+            if search_results.data:
+                for g in search_results.data:
+                    lock = " 🔒" if g["is_private"] else ""
+                    st.write(f"{lock} {g['name']}")
 
-                        if g["id"] in my_groups_id:
-                            st.caption("already a member")
-                            continue
+                    if g["id"] in my_groups_id:
+                        st.caption("already a member")
+                        continue
 
-                        join_key = f"join_{g['id']}"
+                    join_key = f"join_{g['id']}"
 
-                        if g["is_private"]:
-                            entered_pass = st.text_input(
-                                "Enter group password", type="password", key=f"pass_{g['id']}"
-                            )
-                        else:
-                            entered_pass = None
+                    if g["is_private"]:
+                        entered_pass = st.text_input(
+                            "Enter group password", type="password", key=f"pass_{g['id']}"
+                        )
+                    else:
+                        entered_pass = None
 
-                        if st.button("Join", key=join_key):
-                            try:
-                                if g["is_private"]:
-                                    group_row = supabase.table("groups")\
-                                        .select("group_password")\
-                                        .eq("id", g["id"])\
-                                        .single()\
-                                        .execute()
+                    if st.button("Join", key=join_key):
+                        try:
+                            if g["is_private"]:
+                                group_row = supabase.table("groups")\
+                                    .select("group_password")\
+                                    .eq("id", g["id"])\
+                                    .single()\
+                                    .execute()
 
-                                    stored_hash = group_row.data["group_password"]
+                                stored_hash = group_row.data["group_password"]
 
-                                    if not entered_pass or not bcrypt.checkpw(entered_pass.encode(), stored_hash.encode()):
-                                        st.error("Incorrect password")
-                                        st.stop()
+                                if not entered_pass or not bcrypt.checkpw(entered_pass.encode(), stored_hash.encode()):
+                                    st.error("Incorrect password")
+                                    st.stop()
 
-                                supabase.table("group_members").insert({
-                                    "group_id": g["id"],
-                                    "user_id": st.session_state.current_user_id
-                                }).execute()
-                                st.success(f"Joined {g['name']}!")
-                                time.sleep(0.5)
-                                st.rerun()
-                            except Exception as e:
-                                st.error(f"error: {e}")
-                else:
-                    st.write("No matching groups found")
+                            supabase.table("group_members").insert({
+                                "group_id": g["id"],
+                                "user_id": st.session_state.current_user_id
+                            }).execute()
+                            st.success(f"Joined {g['name']}!")
+                            time.sleep(0.5)
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"error: {e}")
+            else:
+                st.write("No matching groups found")
 
         except Exception as e:
             st.error(f"error: {e}")
