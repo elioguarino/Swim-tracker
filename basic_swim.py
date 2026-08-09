@@ -762,9 +762,21 @@ def check_login(email, psk):
             "password": psk
         })
         user_id = response.user.id
-        profile = supabase.table("profiles").select("username, line_colour").eq("id", user_id).single().execute()
-        username = profile.data["username"]
-        line_colour = profile.data["line_colour"]
+
+        profile = supabase.table("profiles").select("username, line_colour").eq("id", user_id).execute()
+
+        if not profile.data:
+            pending_username = response.user.user_metadata.get("pending_username", "New Swimmer")
+            supabase.table("profiles").insert({
+                "id": user_id,
+                "username": pending_username
+            }).execute()
+            username = pending_username
+            line_colour = None
+        else:
+            username = profile.data[0]["username"]
+            line_colour = profile.data[0]["line_colour"]
+
         return "success", username, user_id, line_colour
     except Exception as e:
         return f"error: {e}", None, None, None
