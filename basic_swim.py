@@ -77,6 +77,11 @@ st.markdown("""
     h1, h2, h3, h4, .stMarkdown p {
         color: #06304a;
     }
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    div[data-testid="stStatusWidget"] {visibility: hidden;}
+    div[data-testid="stToolbarActions"] {display: none;}
+    .stAppDeployButton {display: none;}
 
     div[data-testid="stTextInput"] input,
     div[data-testid="stNumberInput"] input,
