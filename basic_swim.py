@@ -321,6 +321,8 @@ def main():
 
     except Exception as e:
         st.sidebar.error(f"error: {e}")
+    
+    show_group_view = len(selected_group_ids) > 0
 
     # ---------- group data fetch ----------
     def get_group_totals(group_ids):
