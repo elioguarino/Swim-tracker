@@ -791,7 +791,7 @@ def settings_page():
             except Exception as e:
                 st.error(f"error: {e}")
 
-    if st.button("←back"):
+    if st.sidebar.button("←back to home", width = "stretch"):
         st.session_state.show_settings = False
         st.rerun()
 
