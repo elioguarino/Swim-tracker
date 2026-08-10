@@ -492,20 +492,41 @@ def main():
             st.session_state.profile_pic = appealing_prof
             img_b64 = img_to_base64(appealing_prof)
 
-            st.markdown(
-                f"<div style='text-align:center; position:relative; top:3px;'>"
-                f"<img src='data:image/png;base64,{img_b64}' width='60'>"
-                f"</div>",
-                unsafe_allow_html=True
-            )
+            # scoped CSS turning this specific button into the pfp image
+            st.markdown(f"""
+                <style>
+                div[class*="st-key-pfp_btn"] button {{
+                    background-image: url("data:image/png;base64,{img_b64}");
+                    background-size: cover;
+                    background-position: center;
+                    width: 60px;
+                    height: 60px;
+                    min-width: 60px;
+                    border-radius: 50%;
+                    border: none;
+                    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+                    padding: 0;
+                    margin: 0 auto;
+                    transition: transform 0.1s ease;
+                }}
+                div[class*="st-key-pfp_btn"] button:hover {{
+                    transform: scale(1.06);
+                    box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+                }}
+                div[class*="st-key-pfp_btn"] button p {{
+                    color: transparent !important;
+                }}
+                </style>
+            """, unsafe_allow_html=True)
+
+            if st.button("pfp", key="pfp_btn"):
+                st.session_state.show_settings = True
+                st.rerun()
+
             st.markdown(
                 f"<div style='text-align: center; font-weight: bold;'>{st.session_state.current_user}</div>",
                 unsafe_allow_html=True
             )
-
-            if st.button("⚙️ Settings"):
-                st.session_state.show_settings = True
-                st.rerun()
 
     # ---------- swim logging inputs ----------
     col1, col2 = st.columns([4, 2], vertical_alignment="bottom")
