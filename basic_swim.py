@@ -18,6 +18,23 @@ from streamlit_cookies_controller import CookieController
 
 cookies = CookieController()
 
+def safe_cookie_get(key):
+    try:
+        return cookies.get(key)
+    except Exception:
+        return None
+
+def safe_cookie_set(key, value, max_age):
+    try:
+        cookies.set(key, value, max_age=max_age)
+    except Exception:
+        pass
+
+def safe_cookie_remove(key):
+    try:
+        cookies.remove(key)
+    except Exception:
+        pass
 
 # ============================================================
 # SUPABASE CONNECTION
@@ -872,7 +889,7 @@ def check_login(email, psk):
             line_colour = profile.data[0]["line_colour"]
             compare_groups = profile.data[0].get("compare_groups") or []
 
-        cookies.set("swim_refresh_token", response.session.refresh_token, max_age=60 * 60 * 24 * 30)
+        safe_cookie.set("swim_refresh_token", response.session.refresh_token, max_age=60 * 60 * 24 * 30)
 
         return "success", username, user_id, line_colour, compare_groups
     except Exception as e:
@@ -885,7 +902,7 @@ if "cookie_check_attempts" not in st.session_state:
 
 if not st.session_state.logged_in and st.session_state.cookie_check_attempts < 3:
     try:
-        saved_refresh_token = cookies.get("swim_refresh_token")
+        saved_refresh_token = safe_cookie.get("swim_refresh_token")
     except TypeError:
         saved_refresh_token = None
 
@@ -905,11 +922,11 @@ if not st.session_state.logged_in and st.session_state.cookie_check_attempts < 3
                 st.session_state.line_colour = profile.data[0]["line_colour"]
                 st.session_state.compare_group_ids = profile.data[0].get("compare_groups") or []
 
-                cookies.set("swim_refresh_token", auth_response.session.refresh_token, max_age=60 * 60 * 24 * 30)
+                safe_cookie.set("swim_refresh_token", auth_response.session.refresh_token, max_age=60 * 60 * 24 * 30)
                 st.session_state.cookie_check_attempts = 999
                 st.rerun()
         except Exception:
-            cookies.remove("swim_refresh_token")
+            safe_cookie.remove("swim_refresh_token")
             st.session_state.cookie_check_attempts = 999
     elif st.session_state.cookie_check_attempts < 3:
         time.sleep(0.15)
@@ -946,7 +963,7 @@ else:
 
     if st.sidebar.button("Log out", width="stretch"):
         supabase.auth.sign_out()
-        cookies.remove("swim_refresh_token")
+        safe_cookie.remove("swim_refresh_token")
         st.session_state.logged_in = False
         st.session_state.current_user = None
         st.session_state.cookie_check_attempts = 0
