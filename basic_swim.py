@@ -122,6 +122,29 @@ st.markdown("""
             left: 0 !important;
         }
     }
+    
+    /* keep title + pfp side-by-side even on mobile */
+    div[class*="st-key-top_bar_container"] div[data-testid="stHorizontalBlock"] {
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        gap: 8px !important;
+    }
+    div[class*="st-key-top_bar_container"] div[data-testid="stColumn"] {
+        width: auto !important;
+        min-width: 0 !important;
+    }
+
+    @media (max-width: 640px) {
+        div[class*="st-key-pfp_btn"] button {
+            width: 42px !important;
+            height: 42px !important;
+            min-width: 42px !important;
+        }
+        div[class*="st-key-top_bar_container"] .stMarkdown div {
+            font-size: 13px !important;
+        }
+    }
 
     button[data-testid="stNumberInputStepUp"],
     button[data-testid="stNumberInputStepDown"] {
@@ -490,56 +513,56 @@ def main():
             st.error(f"error: {e}")
 
     # ---------- top bar: title + profile ----------
-    top_left, top_right = st.columns([5, 1])
-    with top_left:
-        st.markdown(
-            "<h1 style='font-family: Georgia, serif; font-size: clamp(28px, 8vw, 64px); "
-            "font-weight: 700; color: #00008B; letter-spacing: 1px; margin: 0;'>Swimmer</h1>",
-            unsafe_allow_html=True
-        )
-
-    with top_right:
-        with st.container(horizontal_alignment="center"):
-            profile_pic_path = get_prof_pic(st.session_state.current_user_id)
-            appealing_prof = make_circular(profile_pic_path, border_color=st.session_state.line_colour or "#000000", padding=10)
-            st.session_state.profile_pic = appealing_prof
-            img_b64 = img_to_base64(appealing_prof)
-
-            # scoped CSS turning this specific button into the pfp image
-            st.markdown(f"""
-                <style>
-                div[class*="st-key-pfp_btn"] button {{
-                    background-image: url("data:image/png;base64,{img_b64}");
-                    background-size: cover;
-                    background-position: center;
-                    width: 60px;
-                    height: 60px;
-                    min-width: 60px;
-                    border-radius: 50%;
-                    border: none;
-                    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-                    padding: 0;
-                    margin: 0 auto;
-                    transition: transform 0.1s ease;
-                }}
-                div[class*="st-key-pfp_btn"] button:hover {{
-                    transform: scale(1.06);
-                    box-shadow: 0 4px 10px rgba(0,0,0,0.25);
-                }}
-                div[class*="st-key-pfp_btn"] button p {{
-                    color: transparent !important;
-                }}
-                </style>
-            """, unsafe_allow_html=True)
-
-            if st.button("pfp", key="pfp_btn"):
-                st.session_state.show_settings = True
-                st.rerun()
-
+    with st.container(key="top_bar_container"):
+        top_left, top_right = st.columns([5, 1], vertical_alignment="center")
+        with top_left:
             st.markdown(
-                f"<div style='text-align: center; font-weight: bold;'>{st.session_state.current_user}</div>",
+                "<h1 style='font-family: Georgia, serif; font-size: clamp(22px, 7vw, 64px); "
+                "font-weight: 700; color: #00008B; letter-spacing: 1px; margin: 0; white-space: nowrap;'>Swimmer</h1>",
                 unsafe_allow_html=True
             )
+
+        with top_right:
+            with st.container(horizontal_alignment="center"):
+                profile_pic_path = get_prof_pic(st.session_state.current_user_id)
+                appealing_prof = make_circular(profile_pic_path, border_color=st.session_state.line_colour or "#000000", padding=10)
+                st.session_state.profile_pic = appealing_prof
+                img_b64 = img_to_base64(appealing_prof)
+
+                st.markdown(f"""
+                    <style>
+                    div[class*="st-key-pfp_btn"] button {{
+                        background-image: url("data:image/png;base64,{img_b64}");
+                        background-size: cover;
+                        background-position: center;
+                        width: 60px;
+                        height: 60px;
+                        min-width: 60px;
+                        border-radius: 50%;
+                        border: none;
+                        box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+                        padding: 0;
+                        margin: 0 auto;
+                        transition: transform 0.1s ease;
+                    }}
+                    div[class*="st-key-pfp_btn"] button:hover {{
+                        transform: scale(1.06);
+                        box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+                    }}
+                    div[class*="st-key-pfp_btn"] button p {{
+                        color: transparent !important;
+                    }}
+                    </style>
+                """, unsafe_allow_html=True)
+
+                if st.button("pfp", key="pfp_btn"):
+                    st.session_state.show_settings = True
+                    st.rerun()
+
+                st.markdown(
+                    f"<div style='text-align: center; font-weight: bold; white-space: nowrap;'>{st.session_state.current_user}</div>",
+                    unsafe_allow_html=True
+                )
 
     # ---------- swim logging inputs ----------
     col1, col2 = st.columns([4, 2], vertical_alignment="bottom")
