@@ -46,6 +46,7 @@ defaults = {
     "line_colour": None,
     "profile_pic": None,
     "show_lc_change": False,
+    "compare_group_ids": [],
 }
 for key, value in defaults.items():
     if key not in st.session_state:
@@ -105,12 +106,12 @@ st.markdown("""
     div[class*="st-key-log_swim_btn"] {
         position: relative;
         top: -25px;
-        left: 110px;
+        left: 142px;
     }
 
     div[class*="st-key-delete_swim_btn"] {
         position: relative;
-        left: 110px;
+        left: 142px;
     }
 
     @media (max-width: 640px) {
@@ -302,14 +303,24 @@ def main():
             for m in my_memberships_for_view.data:
                 group_id = m["group_id"]
                 group_name = m["groups"]["name"]
-                if st.sidebar.checkbox(group_name, key=f"compare_{group_id}"):
+                is_checked_default = group_id in (st.session_state.compare_group_ids or [])
+                if st.sidebar.checkbox(group_name, key=f"compare_{group_id}", value=is_checked_default):
                     selected_group_ids.append(group_id)
         else:
             st.sidebar.write("Join a group to compare data")
+
+        # persist selection if it changed since last known state
+        if set(selected_group_ids) != set(st.session_state.compare_group_ids or []):
+            try:
+                supabase.table("profiles").update({
+                    "compare_groups": selected_group_ids
+                }).eq("id", st.session_state.current_user_id).execute()
+                st.session_state.compare_group_ids = selected_group_ids
+            except Exception as e:
+                st.sidebar.error(f"error saving comparison: {e}")
+
     except Exception as e:
         st.sidebar.error(f"error: {e}")
-
-    show_group_view = len(selected_group_ids) > 0
 
     # ---------- group data fetch ----------
     def get_group_totals(group_ids):
@@ -807,7 +818,7 @@ def check_login(email, psk):
         })
         user_id = response.user.id
 
-        profile = supabase.table("profiles").select("username, line_colour").eq("id", user_id).execute()
+        profile = supabase.table("profiles").select("username, line_colour, compare_groups").eq("id", user_id).execute()
 
         if not profile.data:
             pending_username = response.user.user_metadata.get("pending_username", "New Swimmer")
@@ -817,13 +828,15 @@ def check_login(email, psk):
             }).execute()
             username = pending_username
             line_colour = None
+            compare_groups = []
         else:
             username = profile.data[0]["username"]
             line_colour = profile.data[0]["line_colour"]
+            compare_groups = profile.data[0].get("compare_groups") or []
 
-        return "success", username, user_id, line_colour
+        return "success", username, user_id, line_colour, compare_groups
     except Exception as e:
-        return f"error: {e}", None, None, None
+        return f"error: {e}", None, None, None, None
 
 
 if not st.session_state.logged_in:
@@ -832,16 +845,17 @@ if not st.session_state.logged_in:
     psk = st.text_input("Password", type="password")
 
     if st.button("Log in"):
-        result, username, user_id, line_colour = check_login(email, psk)
-        if result == "success":
-            st.session_state.logged_in = True
-            st.session_state.current_user = username
-            st.session_state.current_user_id = user_id
-            st.session_state.line_colour = line_colour
-            st.session_state.login_status = None
-            st.rerun()
-        else:
-            st.session_state.login_status = result
+            result, username, user_id, line_colour, compare_groups = check_login(email, psk)
+            if result == "success":
+                st.session_state.logged_in = True
+                st.session_state.current_user = username
+                st.session_state.current_user_id = user_id
+                st.session_state.line_colour = line_colour
+                st.session_state.compare_group_ids = compare_groups
+                st.session_state.login_status = None
+                st.rerun()
+            else:
+                st.session_state.login_status = result
 
     if st.session_state.login_status:
         st.error(st.session_state.login_status)
