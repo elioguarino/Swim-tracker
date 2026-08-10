@@ -142,6 +142,8 @@ st.markdown("""
     }
     div[class*="st-key-pfp_btn"] button {
         margin: 0 !important;
+        padding: 0 !important;
+        box-sizing: border-box !important;
     }
 
     @media (max-width: 640px) {
@@ -544,13 +546,17 @@ def main():
                         background-image: url("data:image/png;base64,{img_b64}");
                         background-size: cover;
                         background-position: center;
-                        width: 60px;
-                        height: 60px;
-                        min-width: 60px;
-                        border-radius: 50%;
+                        box-sizing: border-box !important;
+                        width: 60px !important;
+                        height: 60px !important;
+                        min-width: 60px !important;
+                        max-width: 60px !important;
+                        padding: 0 !important;
                         border: none;
+                        border-radius: 50%;
                         box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-                        padding: 0;
+                        margin: 0 !important;
+                        display: block;
                         transition: transform 0.1s ease;
                     }}
                     div[class*="st-key-pfp_btn"] button:hover {{
@@ -558,7 +564,7 @@ def main():
                         box-shadow: 0 4px 10px rgba(0,0,0,0.25);
                     }}
                     div[class*="st-key-pfp_btn"] button p {{
-                        color: transparent !important;
+                        display: none !important;
                     }}
                     </style>
                 """, unsafe_allow_html=True)
