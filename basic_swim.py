@@ -884,7 +884,11 @@ if "cookie_check_attempts" not in st.session_state:
     st.session_state.cookie_check_attempts = 0
 
 if not st.session_state.logged_in and st.session_state.cookie_check_attempts < 3:
-    saved_refresh_token = cookies.get("swim_refresh_token")
+    try:
+        saved_refresh_token = cookies.get("swim_refresh_token")
+    except TypeError:
+        saved_refresh_token = None
+
     st.session_state.cookie_check_attempts += 1
 
     if saved_refresh_token:
