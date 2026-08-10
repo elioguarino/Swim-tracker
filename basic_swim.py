@@ -14,6 +14,9 @@ from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 
 from PIL import Image, ImageDraw, ImageOps
 from supabase import create_client, Client
+from streamlit_cookies_controller import CookieController
+
+cookies = CookieController()
 
 
 # ============================================================
@@ -869,10 +872,35 @@ def check_login(email, psk):
             line_colour = profile.data[0]["line_colour"]
             compare_groups = profile.data[0].get("compare_groups") or []
 
+        cookies.set("swim_refresh_token", response.session.refresh_token, max_age=60 * 60 * 24 * 30)
+
         return "success", username, user_id, line_colour, compare_groups
     except Exception as e:
         return f"error: {e}", None, None, None, None
 
+# ---------- attempt to restore session from cookie ----------
+if not st.session_state.logged_in and not st.session_state.get("checked_cookie", False):
+    st.session_state.checked_cookie = True
+    saved_refresh_token = cookies.get("swim_refresh_token")
+
+    if saved_refresh_token:
+        try:
+            auth_response = supabase.auth.refresh_session(saved_refresh_token)
+            user_id = auth_response.user.id
+
+            profile = supabase.table("profiles").select("username, line_colour, compare_groups").eq("id", user_id).execute()
+
+            if profile.data:
+                st.session_state.logged_in = True
+                st.session_state.current_user = profile.data[0]["username"]
+                st.session_state.current_user_id = user_id
+                st.session_state.line_colour = profile.data[0]["line_colour"]
+                st.session_state.compare_group_ids = profile.data[0].get("compare_groups") or []
+
+                cookies.set("swim_refresh_token", auth_response.session.refresh_token, max_age=60 * 60 * 24 * 30)
+                st.rerun()
+        except Exception:
+            cookies.remove("swim_refresh_token")
 
 if not st.session_state.logged_in:
     st.header("Login")
@@ -904,7 +932,9 @@ else:
     main()
 
     if st.sidebar.button("Log out", width="stretch"):
-        supabase.auth.sign_out()
-        st.session_state.logged_in = False
-        st.session_state.current_user = None
-        st.rerun()
+            supabase.auth.sign_out()
+            cookies.remove("swim_refresh_token")
+            st.session_state.logged_in = False
+            st.session_state.current_user = None
+            st.session_state.checked_cookie = False
+            st.rerun()
