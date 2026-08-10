@@ -105,12 +105,12 @@ st.markdown("""
     div[class*="st-key-log_swim_btn"] {
         position: relative;
         top: -25px;
-        left: 142px;
+        left: 110px;
     }
 
     div[class*="st-key-delete_swim_btn"] {
         position: relative;
-        left: 142px;
+        left: 110px;
     }
 
     @media (max-width: 640px) {
