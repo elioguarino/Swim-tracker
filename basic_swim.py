@@ -135,21 +135,11 @@ st.markdown("""
         min-width: 0 !important;
     }
     
-    div[class*="st-key-top_bar_container"] div[data-testid="stVerticalBlockBorderWrapper"] {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
+    div[class*="st-key-pfp_btn"] {
+        text-align: center !important;
     }
     div[class*="st-key-pfp_btn"] button {
-        margin: 0 !important;
-        padding: 0 !important;
-        box-sizing: border-box !important;
-    }
-
-    div[class*="st-key-pfp_btn"] {
-        display: flex !important;
-        justify-content: center !important;
-        width: 100% !important;
+        display: inline-block !important;
     }
 
     @media (max-width: 640px) {
