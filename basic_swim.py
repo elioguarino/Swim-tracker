@@ -122,7 +122,7 @@ st.markdown("""
             left: 0 !important;
         }
     }
-    
+
     /* keep title + pfp side-by-side even on mobile */
     div[class*="st-key-top_bar_container"] div[data-testid="stHorizontalBlock"] {
         flex-direction: row !important;
@@ -137,12 +137,12 @@ st.markdown("""
 
     @media (max-width: 640px) {
         div[class*="st-key-pfp_btn"] button {
-            width: 42px !important;
-            height: 42px !important;
-            min-width: 42px !important;
+            width: 56px !important;
+            height: 56px !important;
+            min-width: 56px !important;
         }
         div[class*="st-key-top_bar_container"] .stMarkdown div {
-            font-size: 13px !important;
+            font-size: 16px !important;
         }
     }
 
