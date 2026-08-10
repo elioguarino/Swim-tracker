@@ -134,16 +134,16 @@ st.markdown("""
         width: auto !important;
         min-width: 0 !important;
     }
+    
     div[class*="st-key-top_bar_container"] div[data-testid="stVerticalBlockBorderWrapper"] {
         display: flex;
         flex-direction: column;
         align-items: center;
     }
-    div[class*="st-key-pfp_btn"] {
-        display: flex;
-        justify-content: center;
-        width: 100%;
+    div[class*="st-key-pfp_btn"] button {
+        margin: 0 !important;
     }
+
     @media (max-width: 640px) {
         div[class*="st-key-pfp_btn"] button {
             width: 56px !important;
@@ -551,7 +551,6 @@ def main():
                         border: none;
                         box-shadow: 0 2px 6px rgba(0,0,0,0.2);
                         padding: 0;
-                        margin: 0 auto;
                         transition: transform 0.1s ease;
                     }}
                     div[class*="st-key-pfp_btn"] button:hover {{
