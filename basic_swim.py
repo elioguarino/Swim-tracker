@@ -146,6 +146,12 @@ st.markdown("""
         box-sizing: border-box !important;
     }
 
+    div[class*="st-key-pfp_btn"] {
+        display: flex !important;
+        justify-content: center !important;
+        width: 100% !important;
+    }
+
     @media (max-width: 640px) {
         div[class*="st-key-pfp_btn"] button {
             width: 56px !important;
