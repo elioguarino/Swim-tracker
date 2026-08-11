@@ -899,12 +899,15 @@ def check_login(email, psk):
 # ---------- attempt to restore session from cookie ----------
 if "cookie_check_attempts" not in st.session_state:
     st.session_state.cookie_check_attempts = 0
+if "cookie_debug_log" not in st.session_state:
+    st.session_state.cookie_debug_log = []
 
-if not st.session_state.logged_in and st.session_state.cookie_check_attempts < 3:
+if not st.session_state.logged_in and st.session_state.cookie_check_attempts < 8:
     saved_refresh_token = safe_cookie_get("swim_refresh_token")
     st.session_state.cookie_check_attempts += 1
-
-    st.write(f"DEBUG: attempt {st.session_state.cookie_check_attempts}, token found: {bool(saved_refresh_token)}")
+    st.session_state.cookie_debug_log.append(
+        f"attempt {st.session_state.cookie_check_attempts}: token found = {bool(saved_refresh_token)}"
+    )
 
     if saved_refresh_token:
         try:
@@ -912,11 +915,9 @@ if not st.session_state.logged_in and st.session_state.cookie_check_attempts < 3
             supabase.postgrest.auth(auth_response.session.access_token)
             user_id = auth_response.user.id
 
-            st.write(f"DEBUG: refresh succeeded, user_id: {user_id}")
-
             profile = supabase.table("profiles").select("username, line_colour, compare_groups").eq("id", user_id).execute()
 
-            st.write(f"DEBUG: profile.data: {profile.data}")
+            st.session_state.cookie_debug_log.append(f"refresh ok, profile.data = {profile.data}")
 
             if profile.data:
                 st.session_state.logged_in = True
@@ -932,12 +933,17 @@ if not st.session_state.logged_in and st.session_state.cookie_check_attempts < 3
             else:
                 st.session_state.cookie_check_attempts = 999
         except Exception as e:
-            st.write(f"DEBUG: exception: {e}")
+            st.session_state.cookie_debug_log.append(f"exception: {e}")
             safe_cookie_remove("swim_refresh_token")
             st.session_state.cookie_check_attempts = 999
-    elif st.session_state.cookie_check_attempts < 3:
-        time.sleep(0.15)
+    elif st.session_state.cookie_check_attempts < 8:
+        time.sleep(0.4)
         st.rerun()
+
+if not st.session_state.logged_in and st.session_state.cookie_debug_log:
+    st.write("DEBUG LOG:")
+    for line in st.session_state.cookie_debug_log:
+        st.write(line)
 
 if not st.session_state.logged_in:
     st.header("Login")
