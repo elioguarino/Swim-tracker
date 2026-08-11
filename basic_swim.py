@@ -660,7 +660,7 @@ def main():
     st.pyplot(fig)
 
     # ---------- pool / sea tabs ----------
-    pool_tab, sea_tab = st.tabs(["Pool", "Sea", "Fresh water"])
+    pool_tab, sea_tab, fresh_water_tab = st.tabs(["Pool", "Sea", "Fresh water"])
 
     with pool_tab:
         # ---------- add swim popup ----------
@@ -719,7 +719,7 @@ def main():
 
     with sea_tab:
         st.write("Sea swim tracking coming soon.")
-    with sea_tab:
+    with fresh_water_tab:
         st.write("Sea swim tracking coming soon.")
 
 
