@@ -659,13 +659,12 @@ def main():
 
     st.pyplot(fig)
 
-    # ---------- swim / sea tabs ----------
-    swim_tab, sea_tab = st.tabs(["swim", "sea"])
+    # ---------- pool / sea tabs ----------
+    pool_tab, sea_tab = st.tabs(["pool", "sea"])
 
-    with swim_tab:
-        # ---------- swim logging inputs ----------
-        col1, col2 = st.columns([4, 2], vertical_alignment="bottom")
-        with col1:
+    with pool_tab:
+        # ---------- add swim popup ----------
+        with st.popover("Add swim", width="stretch"):
             lengths = st.number_input(
                 "how many lengths this session?",
                 step=1, value=0, min_value=0, width="stretch"
@@ -675,11 +674,7 @@ def main():
                 value=date.today(), max_value=date.today()
             )
 
-        # ------------------------------------------------------------
-        # LOG / DELETE SWIM
-        # ------------------------------------------------------------
-        with col2:
-            a1 = st.button("log swim", width = "stretch", key="log_swim_btn")
+            a1 = st.button("log swim", width="stretch", key="log_swim_btn")
             if a1:
                 try:
                     mtrs = lengths * 10
@@ -695,25 +690,28 @@ def main():
                 except Exception as e:
                     st.error(f"error:{e}")
 
-            delete_last_swim = st.button("Delete last swim", width = "stretch", key="delete_swim_btn")
-            if delete_last_swim:
-                try:
-                    last_swim = supabase.table("swims") \
-                        .select("id")\
-                        .eq("user_id", st.session_state.current_user_id)\
-                        .order("created_at", desc=True)\
-                        .limit(1)\
-                        .execute()
+        # ------------------------------------------------------------
+        # DELETE SWIM
+        # ------------------------------------------------------------
+        delete_last_swim = st.button("Delete last swim", width="stretch", key="delete_swim_btn")
+        if delete_last_swim:
+            try:
+                last_swim = supabase.table("swims") \
+                    .select("id")\
+                    .eq("user_id", st.session_state.current_user_id)\
+                    .order("created_at", desc=True)\
+                    .limit(1)\
+                    .execute()
 
-                    if last_swim.data:
-                        swim_id = last_swim.data[0]["id"]
-                        supabase.table("swims").delete().eq("id", swim_id).execute()
-                        st.success("last swim deleted")
-                    else:
-                        st.warning("no swims to delete")
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"error: {e}")
+                if last_swim.data:
+                    swim_id = last_swim.data[0]["id"]
+                    supabase.table("swims").delete().eq("id", swim_id).execute()
+                    st.success("last swim deleted")
+                else:
+                    st.warning("no swims to delete")
+                st.rerun()
+            except Exception as e:
+                st.error(f"error: {e}")
 
     with sea_tab:
         st.write("Sea swim tracking coming soon.")
