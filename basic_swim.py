@@ -247,6 +247,7 @@ def create_new():
 
             st.session_state.show_register = False
             st.success("Account created! Check your email to confirm, then log in")
+            time.sleep(0.6)
             st.rerun()
         except Exception as e:
             st.error(f"signup failed: {e}")
@@ -351,7 +352,7 @@ def main():
 
     except Exception as e:
         st.sidebar.error(f"error: {e}")
-    
+
     show_group_view = len(selected_group_ids) > 0
 
     # ---------- group data fetch ----------
@@ -574,18 +575,6 @@ def main():
                     unsafe_allow_html=True
                 )
 
-    # ---------- swim logging inputs ----------
-    col1, col2 = st.columns([4, 2], vertical_alignment="bottom")
-    with col1:
-        lengths = st.number_input(
-            "how many lengths this session?",
-            step=1, value=0, min_value=0, width="stretch"
-        )
-        log_date = st.date_input(
-            "for which day? (default - today)",
-            value=date.today(), max_value=date.today()
-        )
-
     # ---------- solo data fetch ----------
     def get_last_7_days_totals(user_id):
         today = date.today()
@@ -669,6 +658,18 @@ def main():
     ax.tick_params(axis='y', which='minor', length=3)
 
     st.pyplot(fig)
+
+    # ---------- swim logging inputs ----------
+    col1, col2 = st.columns([4, 2], vertical_alignment="bottom")
+    with col1:
+        lengths = st.number_input(
+            "how many lengths this session?",
+            step=1, value=0, min_value=0, width="stretch"
+        )
+        log_date = st.date_input(
+            "for which day? (default - today)",
+            value=date.today(), max_value=date.today()
+        )
 
     # ------------------------------------------------------------
     # LOG / DELETE SWIM
