@@ -20,7 +20,11 @@ cookies = CookieController()
 
 def safe_cookie_get(key):
     try:
-        return cookies.get(key)
+        cookies.getAll()  # first call primes the component
+        all_cookies = cookies.getAll()  # second call actually returns fresh data
+        if all_cookies:
+            return all_cookies.get(key)
+        return None
     except Exception:
         return None
 
