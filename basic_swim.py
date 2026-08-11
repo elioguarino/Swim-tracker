@@ -903,9 +903,13 @@ def check_login(email, psk):
         return f"error: {e}", None, None, None, None
 
 # ---------- attempt to restore session from cookie ----------
-if not st.session_state.logged_in and not st.session_state.get("checked_cookie", False):
-    st.session_state.checked_cookie = True
+# ---------- attempt to restore session from cookie ----------
+if "cookie_check_attempts" not in st.session_state:
+    st.session_state.cookie_check_attempts = 0
+
+if not st.session_state.logged_in and st.session_state.cookie_check_attempts < 5:
     saved_refresh_token = safe_cookie_get("swim_refresh_token")
+    st.session_state.cookie_check_attempts += 1
 
     if saved_refresh_token:
         try:
@@ -923,9 +927,14 @@ if not st.session_state.logged_in and not st.session_state.get("checked_cookie",
                 st.session_state.compare_group_ids = profile.data[0].get("compare_groups") or []
 
                 safe_cookie_set("swim_refresh_token", auth_response.session.refresh_token, max_age=60 * 60 * 24 * 30)
+                st.session_state.cookie_check_attempts = 999
                 st.rerun()
         except Exception:
             safe_cookie_remove("swim_refresh_token")
+            st.session_state.cookie_check_attempts = 999
+    elif st.session_state.cookie_check_attempts < 5:
+        time.sleep(0.2)
+        st.rerun()
 
 
 
