@@ -103,17 +103,6 @@ st.markdown("""
         box-shadow: 0 1px 4px rgba(0,0,0,0.15);
     }
 
-    div[class*="st-key-log_swim_btn"] {
-        position: relative;
-        top: -25px;
-        left: 142px;
-    }
-
-    div[class*="st-key-delete_swim_btn"] {
-        position: relative;
-        left: 142px;
-    }
-
     @media (max-width: 640px) {
         div[class*="st-key-log_swim_btn"],
         div[class*="st-key-delete_swim_btn"] {
@@ -720,7 +709,7 @@ def main():
     with sea_tab:
         st.write("Sea swim tracking coming soon.")
     with fresh_water_tab:
-        st.write("Sea swim tracking coming soon.")
+        st.write("Fresh water tracking coming soon.")
 
 
 # ============================================================
