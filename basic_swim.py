@@ -14,29 +14,33 @@ from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 
 from PIL import Image, ImageDraw, ImageOps
 from supabase import create_client, Client
-from streamlit_cookies_controller import CookieController
+import extra_streamlit_components as stx
 
-cookies = CookieController()
+@st.cache_resource(experimental_allow_widgets=True)
+def get_cookie_manager():
+    return stx.CookieManager(key="swim_cookie_manager")
+
+cookie_manager = get_cookie_manager()
 
 def safe_cookie_get(key):
     try:
-        cookies.getAll()  # first call primes the component
-        all_cookies = cookies.getAll()  # second call actually returns fresh data
-        if all_cookies:
-            return all_cookies.get(key)
-        return None
+        if "all_cookies" not in st.session_state:
+            st.session_state.all_cookies = cookie_manager.get_all()
+        return st.session_state.all_cookies.get(key)
     except Exception:
         return None
 
 def safe_cookie_set(key, value, max_age):
     try:
-        cookies.set(key, value, max_age=max_age)
+        cookie_manager.set(key, value, max_age=max_age, key=f"set_{key}_{time.time()}")
+        st.session_state.pop("all_cookies", None)
     except Exception:
         pass
 
 def safe_cookie_remove(key):
     try:
-        cookies.remove(key)
+        cookie_manager.delete(key, key=f"del_{key}_{time.time()}")
+        st.session_state.pop("all_cookies", None)
     except Exception:
         pass
 
@@ -901,17 +905,9 @@ def check_login(email, psk):
         return f"error: {e}", None, None, None, None
 
 # ---------- attempt to restore session from cookie ----------
-if "cookie_check_attempts" not in st.session_state:
-    st.session_state.cookie_check_attempts = 0
-if "cookie_debug_log" not in st.session_state:
-    st.session_state.cookie_debug_log = []
-
-if not st.session_state.logged_in and st.session_state.cookie_check_attempts < 8:
+if not st.session_state.logged_in and not st.session_state.get("checked_cookie", False):
+    st.session_state.checked_cookie = True
     saved_refresh_token = safe_cookie_get("swim_refresh_token")
-    st.session_state.cookie_check_attempts += 1
-    st.session_state.cookie_debug_log.append(
-        f"attempt {st.session_state.cookie_check_attempts}: token found = {bool(saved_refresh_token)}"
-    )
 
     if saved_refresh_token:
         try:
@@ -921,8 +917,6 @@ if not st.session_state.logged_in and st.session_state.cookie_check_attempts < 8
 
             profile = supabase.table("profiles").select("username, line_colour, compare_groups").eq("id", user_id).execute()
 
-            st.session_state.cookie_debug_log.append(f"refresh ok, profile.data = {profile.data}")
-
             if profile.data:
                 st.session_state.logged_in = True
                 st.session_state.current_user = profile.data[0]["username"]
@@ -931,18 +925,9 @@ if not st.session_state.logged_in and st.session_state.cookie_check_attempts < 8
                 st.session_state.compare_group_ids = profile.data[0].get("compare_groups") or []
 
                 safe_cookie_set("swim_refresh_token", auth_response.session.refresh_token, max_age=60 * 60 * 24 * 30)
-                time.sleep(0.3)
-                st.session_state.cookie_check_attempts = 999
                 st.rerun()
-            else:
-                st.session_state.cookie_check_attempts = 999
-        except Exception as e:
-            st.session_state.cookie_debug_log.append(f"exception: {e}")
+        except Exception:
             safe_cookie_remove("swim_refresh_token")
-            st.session_state.cookie_check_attempts = 999
-    elif st.session_state.cookie_check_attempts < 8:
-        time.sleep(0.4)
-        st.rerun()
 
 if not st.session_state.logged_in and st.session_state.cookie_debug_log:
     st.write("DEBUG LOG:")
