@@ -666,8 +666,12 @@ def main():
         # ---------- add swim popup ----------
         with st.popover("Add swim", width="stretch"):
             lengths = st.number_input(
-                "how many lengths this session?",
-                step=1, value=0, min_value=0, width="stretch"
+                "how many lengths?",
+                step=10, value=0, min_value=0, width="stretch"
+            )
+            pool_length = st.slider(
+                "Pool length (metres)",
+                step = 10, value = 10, min_value = 0, max_value = 200, width = "stretch"
             )
             log_date = st.date_input(
                 "for which day? (default - today)",
@@ -677,7 +681,7 @@ def main():
             a1 = st.button("log swim", width="stretch", key="log_swim_btn")
             if a1:
                 try:
-                    mtrs = lengths * 10
+                    mtrs = lengths * pool_length
                     supabase.table("swims").insert({
                         "user_id": st.session_state.current_user_id,
                         "swim_date": log_date.isoformat(),
