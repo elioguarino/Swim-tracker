@@ -20,8 +20,10 @@ cookie_manager = stx.CookieManager(key="swim_cookie_manager")
 
 def safe_cookie_get(key):
     try:
-        if "all_cookies" not in st.session_state:
+        if "all_cookies" not in st.session_state or st.session_state.all_cookies is None:
             st.session_state.all_cookies = cookie_manager.get_all()
+        if st.session_state.all_cookies is None:
+            return None
         return st.session_state.all_cookies.get(key)
     except Exception:
         return None
