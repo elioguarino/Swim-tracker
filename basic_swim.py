@@ -660,7 +660,7 @@ def main():
     st.pyplot(fig)
 
     # ---------- pool / sea tabs ----------
-    pool_tab, sea_tab = st.tabs(["pool", "sea"])
+    pool_tab, sea_tab = st.tabs(["Pool", "Sea", "Fresh water"])
 
     with pool_tab:
         # ---------- add swim popup ----------
@@ -671,7 +671,7 @@ def main():
             )
             pool_length = st.slider(
                 "Pool length (metres)",
-                step = 10, value = 10, min_value = 0, max_value = 200, width = "stretch"
+                step = 10, value = 10, min_value = 0, max_value = 50, width = "stretch"
             )
             log_date = st.date_input(
                 "for which day? (default - today)",
@@ -717,6 +717,8 @@ def main():
             except Exception as e:
                 st.error(f"error: {e}")
 
+    with sea_tab:
+        st.write("Sea swim tracking coming soon.")
     with sea_tab:
         st.write("Sea swim tracking coming soon.")
 
