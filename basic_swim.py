@@ -890,8 +890,9 @@ def check_login(email, psk):
             compare_groups = profile.data[0].get("compare_groups") or []
 
         safe_cookie_set("swim_refresh_token", response.session.refresh_token, max_age=60 * 60 * 24 * 30)
-
+        time.sleep(0.3)
         return "success", username, user_id, line_colour, compare_groups
+
     except Exception as e:
         return f"error: {e}", None, None, None, None
 
@@ -918,8 +919,10 @@ if not st.session_state.logged_in and st.session_state.cookie_check_attempts < 3
                 st.session_state.compare_group_ids = profile.data[0].get("compare_groups") or []
 
                 safe_cookie_set("swim_refresh_token", auth_response.session.refresh_token, max_age=60 * 60 * 24 * 30)
+                time.sleep(0.3)
                 st.session_state.cookie_check_attempts = 999
                 st.rerun()
+                
         except Exception:
             safe_cookie_remove("swim_refresh_token")
             st.session_state.cookie_check_attempts = 999
