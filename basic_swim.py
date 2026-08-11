@@ -907,6 +907,7 @@ if not st.session_state.logged_in and st.session_state.cookie_check_attempts < 3
     if saved_refresh_token:
         try:
             auth_response = supabase.auth.refresh_session(saved_refresh_token)
+            supabase.postgrest.auth(auth_response.session.access_token)
             user_id = auth_response.user.id
 
             profile = supabase.table("profiles").select("username, line_colour, compare_groups").eq("id", user_id).execute()
@@ -922,7 +923,12 @@ if not st.session_state.logged_in and st.session_state.cookie_check_attempts < 3
                 time.sleep(0.3)
                 st.session_state.cookie_check_attempts = 999
                 st.rerun()
-                
+            else:
+                st.session_state.cookie_check_attempts = 999
+        except Exception:
+            safe_cookie_remove("swim_refresh_token")
+            st.session_state.cookie_check_attempts = 999
+
         except Exception:
             safe_cookie_remove("swim_refresh_token")
             st.session_state.cookie_check_attempts = 999
