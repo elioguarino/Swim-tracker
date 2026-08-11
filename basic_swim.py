@@ -16,11 +16,7 @@ from PIL import Image, ImageDraw, ImageOps
 from supabase import create_client, Client
 import extra_streamlit_components as stx
 
-@st.cache_resource
-def get_cookie_manager():
-    return stx.CookieManager(key="swim_cookie_manager")
-
-cookie_manager = get_cookie_manager()
+cookie_manager = stx.CookieManager(key="swim_cookie_manager")
 
 def safe_cookie_get(key):
     try:
