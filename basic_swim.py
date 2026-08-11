@@ -929,10 +929,7 @@ if not st.session_state.logged_in and not st.session_state.get("checked_cookie",
         except Exception:
             safe_cookie_remove("swim_refresh_token")
 
-if not st.session_state.logged_in and st.session_state.cookie_debug_log:
-    st.write("DEBUG LOG:")
-    for line in st.session_state.cookie_debug_log:
-        st.write(line)
+
 
 if not st.session_state.logged_in:
     st.header("Login")
