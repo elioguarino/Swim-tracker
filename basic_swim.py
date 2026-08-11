@@ -14,33 +14,7 @@ from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 
 from PIL import Image, ImageDraw, ImageOps
 from supabase import create_client, Client
-import extra_streamlit_components as stx
 
-cookie_manager = stx.CookieManager(key="swim_cookie_manager")
-
-def safe_cookie_get(key):
-    try:
-        if "all_cookies" not in st.session_state or st.session_state.all_cookies is None:
-            st.session_state.all_cookies = cookie_manager.get_all()
-        if st.session_state.all_cookies is None:
-            return None
-        return st.session_state.all_cookies.get(key)
-    except Exception:
-        return None
-
-def safe_cookie_set(key, value, max_age):
-    try:
-        cookie_manager.set(key, value, max_age=max_age, key=f"set_{key}_{time.time()}")
-        st.session_state.pop("all_cookies", None)
-    except Exception:
-        pass
-
-def safe_cookie_remove(key):
-    try:
-        cookie_manager.delete(key, key=f"del_{key}_{time.time()}")
-        st.session_state.pop("all_cookies", None)
-    except Exception:
-        pass
 
 # ============================================================
 # SUPABASE CONNECTION
@@ -895,47 +869,9 @@ def check_login(email, psk):
             line_colour = profile.data[0]["line_colour"]
             compare_groups = profile.data[0].get("compare_groups") or []
 
-        safe_cookie_set("swim_refresh_token", response.session.refresh_token, max_age=60 * 60 * 24 * 30)
-        time.sleep(0.3)
         return "success", username, user_id, line_colour, compare_groups
-
     except Exception as e:
         return f"error: {e}", None, None, None, None
-
-# ---------- attempt to restore session from cookie ----------
-# ---------- attempt to restore session from cookie ----------
-if "cookie_check_attempts" not in st.session_state:
-    st.session_state.cookie_check_attempts = 0
-
-if not st.session_state.logged_in and st.session_state.cookie_check_attempts < 5:
-    saved_refresh_token = safe_cookie_get("swim_refresh_token")
-    st.session_state.cookie_check_attempts += 1
-
-    if saved_refresh_token:
-        try:
-            auth_response = supabase.auth.refresh_session(saved_refresh_token)
-            supabase.postgrest.auth(auth_response.session.access_token)
-            user_id = auth_response.user.id
-
-            profile = supabase.table("profiles").select("username, line_colour, compare_groups").eq("id", user_id).execute()
-
-            if profile.data:
-                st.session_state.logged_in = True
-                st.session_state.current_user = profile.data[0]["username"]
-                st.session_state.current_user_id = user_id
-                st.session_state.line_colour = profile.data[0]["line_colour"]
-                st.session_state.compare_group_ids = profile.data[0].get("compare_groups") or []
-
-                safe_cookie_set("swim_refresh_token", auth_response.session.refresh_token, max_age=60 * 60 * 24 * 30)
-                st.session_state.cookie_check_attempts = 999
-                st.rerun()
-        except Exception:
-            safe_cookie_remove("swim_refresh_token")
-            st.session_state.cookie_check_attempts = 999
-    elif st.session_state.cookie_check_attempts < 5:
-        time.sleep(0.2)
-        st.rerun()
-
 
 
 if not st.session_state.logged_in:
@@ -969,8 +905,6 @@ else:
 
     if st.sidebar.button("Log out", width="stretch"):
         supabase.auth.sign_out()
-        safe_cookie_remove("swim_refresh_token")
         st.session_state.logged_in = False
         st.session_state.current_user = None
-        st.session_state.cookie_check_attempts = 0
         st.rerun()
