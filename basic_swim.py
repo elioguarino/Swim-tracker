@@ -889,21 +889,18 @@ def check_login(email, psk):
             line_colour = profile.data[0]["line_colour"]
             compare_groups = profile.data[0].get("compare_groups") or []
 
-        safe_cookie.set("swim_refresh_token", response.session.refresh_token, max_age=60 * 60 * 24 * 30)
+        safe_cookie_set("swim_refresh_token", response.session.refresh_token, max_age=60 * 60 * 24 * 30)
 
         return "success", username, user_id, line_colour, compare_groups
     except Exception as e:
         return f"error: {e}", None, None, None, None
 
 # ---------- attempt to restore session from cookie ----------
-# ---------- attempt to restore session from cookie ----------
 if "cookie_check_attempts" not in st.session_state:
     st.session_state.cookie_check_attempts = 0
 
 if not st.session_state.logged_in and st.session_state.cookie_check_attempts < 3:
     saved_refresh_token = safe_cookie_get("swim_refresh_token")
-    st.session_state.cookie_check_attempts += 1
-
     st.session_state.cookie_check_attempts += 1
 
     if saved_refresh_token:
@@ -920,11 +917,11 @@ if not st.session_state.logged_in and st.session_state.cookie_check_attempts < 3
                 st.session_state.line_colour = profile.data[0]["line_colour"]
                 st.session_state.compare_group_ids = profile.data[0].get("compare_groups") or []
 
-                safe_cookie.set("swim_refresh_token", auth_response.session.refresh_token, max_age=60 * 60 * 24 * 30)
+                safe_cookie_set("swim_refresh_token", auth_response.session.refresh_token, max_age=60 * 60 * 24 * 30)
                 st.session_state.cookie_check_attempts = 999
                 st.rerun()
         except Exception:
-            safe_cookie.remove("swim_refresh_token")
+            safe_cookie_remove("swim_refresh_token")
             st.session_state.cookie_check_attempts = 999
     elif st.session_state.cookie_check_attempts < 3:
         time.sleep(0.15)
@@ -961,7 +958,7 @@ else:
 
     if st.sidebar.button("Log out", width="stretch"):
         supabase.auth.sign_out()
-        safe_cookie.remove("swim_refresh_token")
+        safe_cookie_remove("swim_refresh_token")
         st.session_state.logged_in = False
         st.session_state.current_user = None
         st.session_state.cookie_check_attempts = 0
