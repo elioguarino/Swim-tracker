@@ -904,13 +904,19 @@ if not st.session_state.logged_in and st.session_state.cookie_check_attempts < 3
     saved_refresh_token = safe_cookie_get("swim_refresh_token")
     st.session_state.cookie_check_attempts += 1
 
+    st.write(f"DEBUG: attempt {st.session_state.cookie_check_attempts}, token found: {bool(saved_refresh_token)}")
+
     if saved_refresh_token:
         try:
             auth_response = supabase.auth.refresh_session(saved_refresh_token)
             supabase.postgrest.auth(auth_response.session.access_token)
             user_id = auth_response.user.id
 
+            st.write(f"DEBUG: refresh succeeded, user_id: {user_id}")
+
             profile = supabase.table("profiles").select("username, line_colour, compare_groups").eq("id", user_id).execute()
+
+            st.write(f"DEBUG: profile.data: {profile.data}")
 
             if profile.data:
                 st.session_state.logged_in = True
@@ -925,11 +931,8 @@ if not st.session_state.logged_in and st.session_state.cookie_check_attempts < 3
                 st.rerun()
             else:
                 st.session_state.cookie_check_attempts = 999
-        except Exception:
-            safe_cookie_remove("swim_refresh_token")
-            st.session_state.cookie_check_attempts = 999
-
-        except Exception:
+        except Exception as e:
+            st.write(f"DEBUG: exception: {e}")
             safe_cookie_remove("swim_refresh_token")
             st.session_state.cookie_check_attempts = 999
     elif st.session_state.cookie_check_attempts < 3:
