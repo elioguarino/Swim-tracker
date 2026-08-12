@@ -176,7 +176,7 @@ st.markdown("""
 
 
 # ============================================================
-# IMAGE HELPERS
+# IMAGE HELPERS  (module-level + cached)
 # ============================================================
 def img_to_base64(img_array):
     pil_img = Image.fromarray(img_array)
@@ -185,6 +185,7 @@ def img_to_base64(img_array):
     return base64.b64encode(buffer.getvalue()).decode()
 
 
+@st.cache_data(ttl=300, show_spinner=False)
 def make_circular(image_source, border_color, size=200, border_width=10, padding=0):
     canvas_size = size + (padding * 2)
 
@@ -219,6 +220,142 @@ def make_circular(image_source, border_color, size=200, border_width=10, padding
 
 
 # ============================================================
+# PROFILE PICTURE FETCH  (module-level + cached)
+# ============================================================
+@st.cache_data(ttl=300, show_spinner=False)
+def get_prof_pic(user_id):
+    default_path = "assets/default_prof.png"
+    try:
+        profile = supabase.table("profiles").select("avatar_path").eq("id", user_id).single().execute()
+        avatar_path = profile.data.get("avatar_path")
+
+        if not avatar_path:
+            return default_path
+
+        public_url = supabase.storage.from_("avatars").get_public_url(avatar_path)
+        return public_url
+    except Exception:
+        return default_path
+
+
+# ============================================================
+# GROUP MEMBERSHIP FETCH  (module-level + cached, shared by sidebar + compare list)
+# ============================================================
+@st.cache_data(ttl=30, show_spinner=False)
+def get_my_memberships(user_id):
+    result = supabase.table("group_members")\
+        .select("group_id, groups(name)")\
+        .eq("user_id", user_id)\
+        .execute()
+    return result.data or []
+
+
+@st.cache_data(ttl=30, show_spinner=False)
+def get_group_members(group_id):
+    result = supabase.table("group_members")\
+        .select("profiles(username)")\
+        .eq("group_id", group_id)\
+        .execute()
+    return result.data or []
+
+
+# ============================================================
+# SWIM DATA FETCH  (module-level + cached, cleared on insert/delete)
+# ============================================================
+@st.cache_data(ttl=30, show_spinner=False)
+def get_last_7_days_totals(user_id):
+    today = date.today()
+    start_date = today - timedelta(days=6)
+
+    response = supabase.table("swims") \
+        .select("swim_date, distance_m") \
+        .eq("user_id", user_id) \
+        .gte("swim_date", start_date.isoformat()) \
+        .lte("swim_date", today.isoformat()) \
+        .execute()
+
+    totals = {}
+    for row in response.data:
+        d = row["swim_date"]
+        totals[d] = totals.get(d, 0) + row["distance_m"]
+
+    labels, values = [], []
+    for i in range(7):
+        d = start_date + timedelta(days=i)
+        labels.append(d.strftime("%A"))
+        values.append(totals.get(d.isoformat(), 0))
+
+    return labels, values
+
+
+@st.cache_data(ttl=30, show_spinner=False)
+def get_group_totals(group_ids):
+    try:
+        all_member_ids = set()
+        member_info = {}
+
+        for group_id in group_ids:
+            members = supabase.table("group_members")\
+                .select("user_id, profiles(username, line_colour)")\
+                .eq("group_id", group_id)\
+                .execute()
+
+            for member in members.data:
+                member_id = member["user_id"]
+                all_member_ids.add(member_id)
+                member_info[member_id] = {
+                    "username": member["profiles"]["username"],
+                    "colour": member["profiles"]["line_colour"] or "#000000"
+                }
+
+        today = date.today()
+        start_date = today - timedelta(days=6)
+        all_members_data = []
+
+        for member_id in all_member_ids:
+            response = supabase.table("swims") \
+                .select("swim_date, distance_m") \
+                .eq("user_id", member_id) \
+                .gte("swim_date", start_date.isoformat()) \
+                .lte("swim_date", today.isoformat()) \
+                .execute()
+
+            totals = {}
+            for row in response.data:
+                d = row["swim_date"]
+                totals[d] = totals.get(d, 0) + row["distance_m"]
+
+            values = []
+            for i in range(7):
+                d = start_date + timedelta(days=i)
+                values.append(totals.get(d.isoformat(), 0))
+
+            all_members_data.append({
+                "user_id": member_id,
+                "username": member_info[member_id]["username"],
+                "colour": member_info[member_id]["colour"],
+                "values": values
+            })
+
+        return all_members_data
+    except Exception as e:
+        st.error(f"error loading group data: {e}")
+        return []
+
+
+def clear_swim_caches():
+    """Call right after any insert/delete of a swim so the graph shows fresh data."""
+    get_last_7_days_totals.clear()
+    get_group_totals.clear()
+
+
+def clear_membership_caches():
+    """Call right after join/leave/create group so sidebar + compare list refresh."""
+    get_my_memberships.clear()
+    get_group_members.clear()
+
+
+# ============================================================
 # ACCOUNT CREATION
 # ============================================================
 def create_new():
@@ -244,6 +381,203 @@ def create_new():
 
 
 # ============================================================
+# GRAPH + SWIM LOGGING FRAGMENT
+# (only this reruns when you log/delete a swim or hit refresh —
+#  the sidebar, groups list, etc. are left untouched)
+# ============================================================
+@st.fragment
+def render_swim_section():
+    selected_group_ids = st.session_state.compare_group_ids or []
+    show_group_view = len(selected_group_ids) > 0
+
+    # ------------------------------------------------------------
+    # PLOT GRAPH
+    # ------------------------------------------------------------
+    fig, ax = plt.subplots(figsize=(8, 4.5))
+    fig.patch.set_facecolor("#73E6FF")
+    ax.set_facecolor("#9bedff")
+
+    weekday_labels = [(date.today() - timedelta(days=6 - i)).strftime("%A") for i in range(7)]
+
+    if show_group_view:
+        group_data = get_group_totals(tuple(selected_group_ids))
+
+        for member in group_data:
+            ax.plot(weekday_labels, member["values"], marker="o",
+                     color=member["colour"] or "#000000", label=member["username"])
+
+            if member["user_id"] == st.session_state.current_user_id:
+                ax.fill_between(weekday_labels, member["values"], color=member["colour"] or "#000000", alpha=0.15)
+
+            last_x = weekday_labels[-1]
+            last_y = member["values"][-1]
+            member_icon = make_circular(get_prof_pic(member["user_id"]), border_color=member["colour"] or "#000000", padding=10)
+            imagebox = OffsetImage(member_icon, zoom=0.12)
+            ab = AnnotationBbox(imagebox, (last_x, last_y), frameon=False)
+            ax.add_artist(ab)
+
+        ax.legend()
+
+        all_values = [v for member in group_data for v in member["values"]]
+        ax.set_ylim(0, max(all_values) * 1.1 if all_values else 1)
+
+    else:
+        labels, values = get_last_7_days_totals(st.session_state.current_user_id)
+
+        ax.plot(labels, values, marker="o", color=st.session_state.line_colour or "#000000")
+        ax.fill_between(labels, values, color=st.session_state.line_colour or "#000000", alpha=0.15)
+
+        img = make_circular(get_prof_pic(st.session_state.current_user_id), border_color=st.session_state.line_colour or "#000000", padding=10)
+        last_x, last_y = labels[-1], values[-1]
+        imagebox = OffsetImage(img, zoom=0.18)
+        ab = AnnotationBbox(imagebox, (last_x, last_y), frameon=False)
+        ax.add_artist(ab)
+
+        ax.set_ylim(0, max(values) * 1.1 if values else 1)
+
+    ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+    ax.grid(True, axis='both', which='major', linestyle='--', alpha=0.7)
+    ax.grid(True, axis='y', which='minor', linestyle='--', alpha=0.4)
+    ax.yaxis.set_major_locator(MultipleLocator(100))
+    ax.yaxis.set_minor_locator(MultipleLocator(20))
+    ax.tick_params(axis='y', which='minor', length=3)
+
+    st.pyplot(fig)
+    plt.close(fig)
+
+    # ---------- pool / sea tabs ----------
+    pool_tab, open_water_tab, stopwatch_tab = st.tabs(["Pool", "open water", "stopwatch (temp)"])
+
+    with pool_tab:
+
+        # ------------------------------------------------------------
+        # LOG SWIM
+        # ------------------------------------------------------------
+        with st.popover("Log swim", width="stretch"):
+            lengths = st.number_input(
+                "how many lengths?",
+                step=10, value=0, min_value=0, width="stretch"
+            )
+            pool_length = st.slider(
+                "Pool length (metres)",
+                step=10, value=10, min_value=0, max_value=50, width="stretch"
+            )
+            log_date = st.date_input(
+                "for which day? (default - today)",
+                value=date.today(), max_value=date.today()
+            )
+
+            a1 = st.button("log swim", width="stretch", key="log_swim_btn")
+            if a1:
+                try:
+                    mtrs = lengths * pool_length
+                    supabase.table("swims").insert({
+                        "user_id": st.session_state.current_user_id,
+                        "swim_date": log_date.isoformat(),
+                        "distance_m": mtrs,
+                    }).execute()
+                    clear_swim_caches()
+                    with st.spinner("adding data..."):
+                        time.sleep(1.5)
+                        st.success(f"added {mtrs} metres to {log_date.strftime('%A, %B %d')}!")
+                    st.rerun(scope="fragment")
+                except Exception as e:
+                    st.error(f"error:{e}")
+
+    cool_dividy_things1, cool_dividy_things2 = st.columns([1, 1])
+    with cool_dividy_things1:
+        # ------------------------------------------------------------
+        # DELETE SWIM
+        # ------------------------------------------------------------
+        delete_last_swim = st.button("Delete last swim", width="stretch", key="delete_swim_btn")
+        if delete_last_swim:
+            try:
+                last_swim = supabase.table("swims") \
+                    .select("id")\
+                    .eq("user_id", st.session_state.current_user_id)\
+                    .order("created_at", desc=True)\
+                    .limit(1)\
+                    .execute()
+
+                if last_swim.data:
+                    swim_id = last_swim.data[0]["id"]
+                    supabase.table("swims").delete().eq("id", swim_id).execute()
+                    clear_swim_caches()
+                    st.success("last swim deleted")
+                else:
+                    st.warning("no swims to delete")
+                st.rerun(scope="fragment")
+            except Exception as e:
+                st.error(f"error: {e}")
+    with cool_dividy_things2:
+        if st.button("Refresh graph", width="stretch"):
+            clear_swim_caches()
+            with st.spinner():
+                st.rerun(scope="fragment")
+
+    with open_water_tab:
+        st.write("Sea swim tracking coming soon.")
+
+    with stopwatch_tab:
+        components.html("""
+            <div style="display:flex; flex-direction:column; align-items:center; gap:16px; padding:16px; font-family:sans-serif;">
+                <div id="sw-display" style="font-size:3rem; font-weight:bold; color:#00008B;">00:00.000</div>
+                <div style="display:flex; gap:12px;">
+                    <button id="sw-start" style="background:#ffffff; color:#06304a; border:none; border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,0.15); font-weight:600; padding:10px 20px; cursor:pointer;">Start</button>
+                    <button id="sw-stop" style="background:#ffffff; color:#06304a; border:none; border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,0.15); font-weight:600; padding:10px 20px; cursor:pointer;">Pause</button>
+                    <button id="sw-reset" style="background:#ffffff; color:#06304a; border:none; border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,0.15); font-weight:600; padding:10px 20px; cursor:pointer;">Reset</button>
+                </div>
+            </div>
+            <script>
+            let running = false;
+            let startTime = 0;
+            let elapsedBeforePause = 0;
+            let rafId = null;
+
+            const display = document.getElementById('sw-display');
+
+            function format(ms) {
+                const totalMs = Math.floor(ms);
+                const minutes = String(Math.floor(totalMs / 60000)).padStart(2, '0');
+                const seconds = String(Math.floor((totalMs % 60000) / 1000)).padStart(2, '0');
+                const millis = String(totalMs % 1000).padStart(3, '0');
+                return minutes + ":" + seconds + "." + millis;
+            }
+
+            function tick() {
+                const now = performance.now();
+                const elapsed = elapsedBeforePause + (now - startTime);
+                display.innerText = format(elapsed);
+                rafId = requestAnimationFrame(tick);
+            }
+
+            document.getElementById('sw-start').addEventListener('click', function() {
+                if (!running) {
+                    running = true;
+                    startTime = performance.now();
+                    rafId = requestAnimationFrame(tick);
+                }
+            });
+
+            document.getElementById('sw-stop').addEventListener('click', function() {
+                if (running) {
+                    running = false;
+                    elapsedBeforePause += performance.now() - startTime;
+                    cancelAnimationFrame(rafId);
+                }
+            });
+
+            document.getElementById('sw-reset').addEventListener('click', function() {
+                running = false;
+                elapsedBeforePause = 0;
+                cancelAnimationFrame(rafId);
+                display.innerText = "00:00.000";
+            });
+            </script>
+        """, height=180)
+
+
+# ============================================================
 # MAIN APP
 # ============================================================
 def main():
@@ -257,13 +591,10 @@ def main():
         st.sidebar.header("Your Groups:")
 
         try:
-            my_memberships = supabase.table("group_members")\
-                .select("group_id, groups(name)")\
-                .eq("user_id", st.session_state.current_user_id)\
-                .execute()
+            my_memberships = get_my_memberships(st.session_state.current_user_id)
 
-            if my_memberships.data:
-                for m in my_memberships.data:
+            if my_memberships:
+                for m in my_memberships:
                     group_id = m["group_id"]
                     group_name = m["groups"]["name"]
 
@@ -271,12 +602,8 @@ def main():
 
                     with st.sidebar.expander("Members"):
                         try:
-                            members = supabase.table("group_members")\
-                                .select("profiles(username)")\
-                                .eq("group_id", group_id)\
-                                .execute()
-
-                            for member in members.data:
+                            members = get_group_members(group_id)
+                            for member in members:
                                 st.write(f"- {member['profiles']['username']}")
                         except Exception as e:
                             st.error(f"error loading members: {e}")
@@ -300,6 +627,7 @@ def main():
                                 else:
                                     st.sidebar.success(f"Left {group_name}")
 
+                                clear_membership_caches()
                                 st.rerun()
                             except Exception as e:
                                 st.sidebar.error(f"error: {e}")
@@ -315,13 +643,10 @@ def main():
     selected_group_ids = []
 
     try:
-        my_memberships_for_view = supabase.table("group_members")\
-            .select("group_id, groups(name)")\
-            .eq("user_id", st.session_state.current_user_id)\
-            .execute()
+        my_memberships_for_view = get_my_memberships(st.session_state.current_user_id)
 
-        if my_memberships_for_view.data:
-            for m in my_memberships_for_view.data:
+        if my_memberships_for_view:
+            for m in my_memberships_for_view:
                 group_id = m["group_id"]
                 group_name = m["groups"]["name"]
                 is_checked_default = group_id in (st.session_state.compare_group_ids or [])
@@ -342,62 +667,6 @@ def main():
 
     except Exception as e:
         st.sidebar.error(f"error: {e}")
-
-    show_group_view = len(selected_group_ids) > 0
-
-    # ---------- group data fetch ----------
-    def get_group_totals(group_ids):
-        try:
-            all_member_ids = set()
-            member_info = {}
-
-            for group_id in group_ids:
-                members = supabase.table("group_members")\
-                    .select("user_id, profiles(username, line_colour)")\
-                    .eq("group_id", group_id)\
-                    .execute()
-
-                for member in members.data:
-                    member_id = member["user_id"]
-                    all_member_ids.add(member_id)
-                    member_info[member_id] = {
-                        "username": member["profiles"]["username"],
-                        "colour": member["profiles"]["line_colour"] or "#000000"
-                    }
-
-            today = date.today()
-            start_date = today - timedelta(days=6)
-            all_members_data = []
-
-            for member_id in all_member_ids:
-                response = supabase.table("swims") \
-                    .select("swim_date, distance_m") \
-                    .eq("user_id", member_id) \
-                    .gte("swim_date", start_date.isoformat()) \
-                    .lte("swim_date", today.isoformat()) \
-                    .execute()
-
-                totals = {}
-                for row in response.data:
-                    d = row["swim_date"]
-                    totals[d] = totals.get(d, 0) + row["distance_m"]
-
-                values = []
-                for i in range(7):
-                    d = start_date + timedelta(days=i)
-                    values.append(totals.get(d.isoformat(), 0))
-
-                all_members_data.append({
-                    "user_id": member_id,
-                    "username": member_info[member_id]["username"],
-                    "colour": member_info[member_id]["colour"],
-                    "values": values
-                })
-
-            return all_members_data
-        except Exception as e:
-            st.error(f"error loading group data: {e}")
-            return []
 
     # ---------- sidebar: create a group ----------
     with st.sidebar.expander("Create a group"):
@@ -427,6 +696,7 @@ def main():
                     "user_id": st.session_state.current_user_id
                 }).execute()
 
+                clear_membership_caches()
                 st.sidebar.success(f"Created group: {new_group_name}")
                 st.rerun()
             except Exception as e:
@@ -499,6 +769,7 @@ def main():
                                 "group_id": g["id"],
                                 "user_id": st.session_state.current_user_id
                             }).execute()
+                            clear_membership_caches()
                             st.success(f"Joined {g['name']}!")
                             time.sleep(0.5)
                             st.rerun()
@@ -565,234 +836,8 @@ def main():
                     unsafe_allow_html=True
                 )
 
-    # ---------- solo data fetch ----------
-    def get_last_7_days_totals(user_id):
-        today = date.today()
-        start_date = today - timedelta(days=6)
-
-        response = supabase.table("swims") \
-            .select("swim_date, distance_m") \
-            .eq("user_id", user_id) \
-            .gte("swim_date", start_date.isoformat()) \
-            .lte("swim_date", today.isoformat()) \
-            .execute()
-
-        totals = {}
-        for row in response.data:
-            d = row["swim_date"]
-            totals[d] = totals.get(d, 0) + row["distance_m"]
-
-        labels, values = [], []
-        for i in range(7):
-            d = start_date + timedelta(days=i)
-            labels.append(d.strftime("%A"))
-            values.append(totals.get(d.isoformat(), 0))
-
-        return labels, values
-
-    weekday_names = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-    def weekday_for_day(current_day):
-        idx = (current_day - 1) % 7
-        return weekday_names[idx]
-
-    # ------------------------------------------------------------
-    # PLOT GRAPH
-    # ------------------------------------------------------------
-    fig, ax = plt.subplots(figsize=(8, 4.5))
-    fig.patch.set_facecolor("#73E6FF")
-    ax.set_facecolor("#9bedff")
-
-    weekday_labels = [(date.today() - timedelta(days=6 - i)).strftime("%A") for i in range(7)]
-
-    if show_group_view:
-        group_data = get_group_totals(selected_group_ids)
-
-        for member in group_data:
-            ax.plot(weekday_labels, member["values"], marker="o",
-                     color=member["colour"] or "#000000", label=member["username"])
-
-            if member["user_id"] == st.session_state.current_user_id:
-                ax.fill_between(weekday_labels, member["values"], color=member["colour"] or "#000000", alpha=0.15)
-
-            last_x = weekday_labels[-1]
-            last_y = member["values"][-1]
-            member_icon = make_circular(get_prof_pic(member["user_id"]), border_color=member["colour"] or "#000000", padding=10)
-            imagebox = OffsetImage(member_icon, zoom=0.12)
-            ab = AnnotationBbox(imagebox, (last_x, last_y), frameon=False)
-            ax.add_artist(ab)
-
-        ax.legend()
-
-        all_values = [v for member in group_data for v in member["values"]]
-        ax.set_ylim(0, max(all_values) * 1.1 if all_values else 1)
-
-    else:
-        labels, values = get_last_7_days_totals(st.session_state.current_user_id)
-
-        ax.plot(labels, values, marker="o", color=st.session_state.line_colour or "#000000")
-        ax.fill_between(labels, values, color=st.session_state.line_colour or "#000000", alpha=0.15)
-
-        img = make_circular(get_prof_pic(st.session_state.current_user_id), border_color=st.session_state.line_colour or "#000000", padding=10)
-        last_x, last_y = labels[-1], values[-1]
-        imagebox = OffsetImage(img, zoom=0.18)
-        ab = AnnotationBbox(imagebox, (last_x, last_y), frameon=False)
-        ax.add_artist(ab)
-
-        ax.set_ylim(0, max(values) * 1.1 if values else 1)
-
-    ax.yaxis.set_major_locator(MaxNLocator(integer=True))
-    ax.grid(True, axis='both', which='major', linestyle='--', alpha=0.7)
-    ax.grid(True, axis='y', which='minor', linestyle='--', alpha=0.4)
-    ax.yaxis.set_major_locator(MultipleLocator(100))
-    ax.yaxis.set_minor_locator(MultipleLocator(20))
-    ax.tick_params(axis='y', which='minor', length=3)
-
-    st.pyplot(fig)
-
-    # ---------- pool / sea tabs ----------
-    pool_tab, open_water_tab, stopwatch_tab = st.tabs(["Pool", "open water", "stopwatch (temp)"])
-
-    with pool_tab:
-
-        # ------------------------------------------------------------
-        # LOG SWIM
-        # ------------------------------------------------------------
-        with st.popover("Log swim", width="stretch"):
-            lengths = st.number_input(
-                "how many lengths?",
-                step=10, value=0, min_value=0, width="stretch"
-            )
-            pool_length = st.slider(
-                "Pool length (metres)",
-                step = 10, value = 10, min_value = 0, max_value = 50, width = "stretch"
-            )
-            log_date = st.date_input(
-                "for which day? (default - today)",
-                value=date.today(), max_value=date.today()
-            )
-
-            a1 = st.button("log swim", width="stretch", key="log_swim_btn")
-            if a1:
-                try:
-                    mtrs = lengths * pool_length
-                    supabase.table("swims").insert({
-                        "user_id": st.session_state.current_user_id,
-                        "swim_date": log_date.isoformat(),
-                        "distance_m": mtrs,
-                    }).execute()
-                    with st.spinner("adding data..."):
-                        time.sleep(1.5)
-                        st.success(f"added {mtrs} metres to {log_date.strftime('%A, %B %d')}!")
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"error:{e}")
-    cool_dividy_things1, cool_dividy_things2 = st.columns([1,1])
-    with cool_dividy_things1:
-        # ------------------------------------------------------------
-        # DELETE SWIM
-        # ------------------------------------------------------------
-        delete_last_swim = st.button("Delete last swim", width="stretch", key="delete_swim_btn")
-        if delete_last_swim:
-            try:
-                last_swim = supabase.table("swims") \
-                    .select("id")\
-                    .eq("user_id", st.session_state.current_user_id)\
-                    .order("created_at", desc=True)\
-                    .limit(1)\
-                    .execute()
-
-                if last_swim.data:
-                    swim_id = last_swim.data[0]["id"]
-                    supabase.table("swims").delete().eq("id", swim_id).execute()
-                    st.success("last swim deleted")
-                else:
-                    st.warning("no swims to delete")
-                st.rerun()
-            except Exception as e:
-                st.error(f"error: {e}")
-    with cool_dividy_things2:
-        if st.button("Refresh graph"):
-            with st.spinner():
-                st.rerun()
-
-    with open_water_tab:
-        st.write("Sea swim tracking coming soon.")
-
-    with stopwatch_tab:
-        components.html("""
-            <div style="display:flex; flex-direction:column; align-items:center; gap:16px; padding:16px; font-family:sans-serif;">
-                <div id="sw-display" style="font-size:3rem; font-weight:bold; color:#00008B;">00:00.000</div>
-                <div style="display:flex; gap:12px;">
-                    <button id="sw-start" style="background:#ffffff; color:#06304a; border:none; border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,0.15); font-weight:600; padding:10px 20px; cursor:pointer;">Start</button>
-                    <button id="sw-stop" style="background:#ffffff; color:#06304a; border:none; border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,0.15); font-weight:600; padding:10px 20px; cursor:pointer;">Stop</button>
-                    <button id="sw-reset" style="background:#ffffff; color:#06304a; border:none; border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,0.15); font-weight:600; padding:10px 20px; cursor:pointer;">Reset</button>
-                </div>
-            </div>
-            <script>
-            let running = false;
-            let startTime = 0;
-            let elapsedBeforePause = 0;
-            let rafId = null;
-
-            const display = document.getElementById('sw-display');
-
-            function format(ms) {
-                const totalMs = Math.floor(ms);
-                const minutes = String(Math.floor(totalMs / 60000)).padStart(2, '0');
-                const seconds = String(Math.floor((totalMs % 60000) / 1000)).padStart(2, '0');
-                const millis = String(totalMs % 1000).padStart(3, '0');
-                return minutes + ":" + seconds + "." + millis;
-            }
-
-            function tick() {
-                const now = performance.now();
-                const elapsed = elapsedBeforePause + (now - startTime);
-                display.innerText = format(elapsed);
-                rafId = requestAnimationFrame(tick);
-            }
-
-            document.getElementById('sw-start').addEventListener('click', function() {
-                if (!running) {
-                    running = true;
-                    startTime = performance.now();
-                    rafId = requestAnimationFrame(tick);
-                }
-            });
-
-            document.getElementById('sw-stop').addEventListener('click', function() {
-                if (running) {
-                    running = false;
-                    elapsedBeforePause += performance.now() - startTime;
-                    cancelAnimationFrame(rafId);
-                }
-            });
-
-            document.getElementById('sw-reset').addEventListener('click', function() {
-                running = false;
-                elapsedBeforePause = 0;
-                cancelAnimationFrame(rafId);
-                display.innerText = "00:00.000";
-            });
-            </script>
-        """, height=180)
-
-
-# ============================================================
-# PROFILE PICTURE FETCH
-# ============================================================
-def get_prof_pic(user_id):
-    default_path = "assets/default_prof.png"    
-    try:
-        profile = supabase.table("profiles").select("avatar_path").eq("id", user_id).single().execute()
-        avatar_path = profile.data.get("avatar_path")
-
-        if not avatar_path:
-            return default_path
-
-        public_url = supabase.storage.from_("avatars").get_public_url(avatar_path)
-        return public_url
-    except Exception:
-        return default_path
+    # ---------- graph + logging (fragment: reruns on its own) ----------
+    render_swim_section()
 
 
 # ============================================================
@@ -827,6 +872,8 @@ def settings_page():
                     "avatar_path": file_path
                 }).eq("id", st.session_state.current_user_id).execute()
 
+                get_prof_pic.clear()
+                make_circular.clear()
                 st.success("Profile picture updated!")
                 st.rerun()
             except Exception as e:
