@@ -523,9 +523,8 @@ def render_swim_section():
             <div style="display:flex; flex-direction:column; align-items:center; gap:16px; padding:16px; font-family:sans-serif;">
                 <div id="sw-display" style="font-size:3rem; font-weight:bold; color:#00008B;">00:00.000</div>
                 <div style="display:flex; gap:12px;">
-                    <button id="sw-start" style="background:#ffffff; color:#06304a; border:none; border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,0.15); font-weight:600; padding:10px 20px; cursor:pointer;">Start</button>
-                    <button id="sw-stop" style="background:#ffffff; color:#06304a; border:none; border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,0.15); font-weight:600; padding:10px 20px; cursor:pointer;">Pause</button>
-                    <button id="sw-reset" style="background:#ffffff; color:#06304a; border:none; border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,0.15); font-weight:600; padding:10px 20px; cursor:pointer;">Reset</button>
+                    <button id="sw-toggle" style="background:#ffffff; color:#06304a; border:none; border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,0.15); font-weight:600; padding:10px 20px; cursor:pointer;">Start</button>
+                    <button id="sw-reset" style="background:#ffffff; color:#06304a; border:none; border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,0.15); font-weight:600; padding:10px 20px; cursor:pointer; opacity:0.5;" disabled>Reset</button>
                 </div>
             </div>
             <script>
@@ -535,6 +534,8 @@ def render_swim_section():
             let rafId = null;
 
             const display = document.getElementById('sw-display');
+            const toggleBtn = document.getElementById('sw-toggle');
+            const resetBtn = document.getElementById('sw-reset');
 
             function format(ms) {
                 const totalMs = Math.floor(ms);
@@ -551,28 +552,42 @@ def render_swim_section():
                 rafId = requestAnimationFrame(tick);
             }
 
-            document.getElementById('sw-start').addEventListener('click', function() {
+            function updateResetState() {
+                if (running || elapsedBeforePause === 0) {
+                    resetBtn.disabled = true;
+                    resetBtn.style.opacity = "0.5";
+                    resetBtn.style.cursor = "default";
+                } else {
+                    resetBtn.disabled = false;
+                    resetBtn.style.opacity = "1";
+                    resetBtn.style.cursor = "pointer";
+                }
+            }
+
+            toggleBtn.addEventListener('click', function() {
                 if (!running) {
                     running = true;
                     startTime = performance.now();
                     rafId = requestAnimationFrame(tick);
-                }
-            });
-
-            document.getElementById('sw-stop').addEventListener('click', function() {
-                if (running) {
+                    toggleBtn.innerText = "Pause";
+                } else {
                     running = false;
                     elapsedBeforePause += performance.now() - startTime;
                     cancelAnimationFrame(rafId);
+                    toggleBtn.innerText = "Resume";
                 }
+                updateResetState();
             });
 
-            document.getElementById('sw-reset').addEventListener('click', function() {
-                running = false;
+            resetBtn.addEventListener('click', function() {
+                if (running) return;
                 elapsedBeforePause = 0;
-                cancelAnimationFrame(rafId);
                 display.innerText = "00:00.000";
+                toggleBtn.innerText = "Start";
+                updateResetState();
             });
+
+            updateResetState();
             </script>
         """, height=180)
 
