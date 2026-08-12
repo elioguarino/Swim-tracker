@@ -14,6 +14,7 @@ from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 
 from PIL import Image, ImageDraw, ImageOps
 from supabase import create_client, Client
+import streamlit.components.v1 as components
 
 
 # ============================================================
@@ -649,11 +650,14 @@ def main():
     st.pyplot(fig)
 
     # ---------- pool / sea tabs ----------
-    pool_tab, sea_tab, fresh_water_tab = st.tabs(["Pool", "Sea", "Fresh water"])
+    pool_tab, open_water_tab, stopwatch_tab = st.tabs(["Pool", "open water", "stopwatch (temp)"])
 
     with pool_tab:
-        # ---------- add swim popup ----------
-        with st.popover("Add swim", width="stretch"):
+
+        # ------------------------------------------------------------
+        # LOG SWIM
+        # ------------------------------------------------------------
+        with st.popover("Log swim", width="stretch"):
             lengths = st.number_input(
                 "how many lengths?",
                 step=10, value=0, min_value=0, width="stretch"
@@ -682,7 +686,8 @@ def main():
                     st.rerun()
                 except Exception as e:
                     st.error(f"error:{e}")
-
+    cool_dividy_things1, cool_dividy_things2 = st.columns([1,1])
+    with cool_dividy_things1:
         # ------------------------------------------------------------
         # DELETE SWIM
         # ------------------------------------------------------------
@@ -705,11 +710,71 @@ def main():
                 st.rerun()
             except Exception as e:
                 st.error(f"error: {e}")
+    with cool_dividy_things2:
+        if st.button("Refresh graph"):
+            with st.spinner():
+                st.rerun()
 
-    with sea_tab:
+    with open_water_tab:
         st.write("Sea swim tracking coming soon.")
-    with fresh_water_tab:
-        st.write("Fresh water tracking coming soon.")
+
+    with stopwatch_tab:
+        components.html("""
+            <div style="display:flex; flex-direction:column; align-items:center; gap:16px; padding:16px; font-family:sans-serif;">
+                <div id="sw-display" style="font-size:3rem; font-weight:bold; color:#00008B;">00:00.000</div>
+                <div style="display:flex; gap:12px;">
+                    <button id="sw-start" style="background:#ffffff; color:#06304a; border:none; border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,0.15); font-weight:600; padding:10px 20px; cursor:pointer;">Start</button>
+                    <button id="sw-stop" style="background:#ffffff; color:#06304a; border:none; border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,0.15); font-weight:600; padding:10px 20px; cursor:pointer;">Stop</button>
+                    <button id="sw-reset" style="background:#ffffff; color:#06304a; border:none; border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,0.15); font-weight:600; padding:10px 20px; cursor:pointer;">Reset</button>
+                </div>
+            </div>
+            <script>
+            let running = false;
+            let startTime = 0;
+            let elapsedBeforePause = 0;
+            let rafId = null;
+
+            const display = document.getElementById('sw-display');
+
+            function format(ms) {
+                const totalMs = Math.floor(ms);
+                const minutes = String(Math.floor(totalMs / 60000)).padStart(2, '0');
+                const seconds = String(Math.floor((totalMs % 60000) / 1000)).padStart(2, '0');
+                const millis = String(totalMs % 1000).padStart(3, '0');
+                return minutes + ":" + seconds + "." + millis;
+            }
+
+            function tick() {
+                const now = performance.now();
+                const elapsed = elapsedBeforePause + (now - startTime);
+                display.innerText = format(elapsed);
+                rafId = requestAnimationFrame(tick);
+            }
+
+            document.getElementById('sw-start').addEventListener('click', function() {
+                if (!running) {
+                    running = true;
+                    startTime = performance.now();
+                    rafId = requestAnimationFrame(tick);
+                }
+            });
+
+            document.getElementById('sw-stop').addEventListener('click', function() {
+                if (running) {
+                    running = false;
+                    elapsedBeforePause += performance.now() - startTime;
+                    cancelAnimationFrame(rafId);
+                }
+            });
+
+            document.getElementById('sw-reset').addEventListener('click', function() {
+                running = false;
+                elapsedBeforePause = 0;
+                cancelAnimationFrame(rafId);
+                display.innerText = "00:00.000";
+            });
+            </script>
+        """, height=180)
 
 
 # ============================================================
