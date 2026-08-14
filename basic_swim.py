@@ -464,7 +464,7 @@ def render_swim_section():
                 "for which day? (default - today)",
                 value=date.today(), max_value=date.today()
             )
-            st.subheader("Time (optional)")
+            st.write("Time (optional)")
             a, b, c = st.columns([1,1,1])
 
             with a:
