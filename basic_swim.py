@@ -11,6 +11,7 @@ from datetime import date, timedelta
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator, MultipleLocator
 from matplotlib.offsetbox import OffsetImage, AnnotationBbox
+import plotly.graph_objects as go
 
 from PIL import Image, ImageDraw, ImageOps
 from supabase import create_client, Client
@@ -532,34 +533,38 @@ def render_swim_section():
     if show_group_view:
         member_totals = [sum(member["values"]) for member in group_data]
         total_group_distance = sum(member_totals)
+        co1, co2 = st.columns([1,1])
+        with co1:
+            if total_group_distance > 0:
+                pie_fig, pie_ax = plt.subplots(figsize=(5, 5))
+                pie_fig.patch.set_facecolor("#73E6FF")
 
-        if total_group_distance > 0:
-            pie_fig, pie_ax = plt.subplots(figsize=(5, 5))
-            pie_fig.patch.set_facecolor("#73E6FF")
+                labels = [member["username"] for member in group_data]
+                colours = [member["colour"] or "#000000" for member in group_data]
 
-            labels = [member["username"] for member in group_data]
-            colours = [member["colour"] or "#000000" for member in group_data]
+                pie_ax.pie(
+                    member_totals,
+                    labels=labels,
+                    colors=colours,
+                    autopct=lambda pct: f"{pct:.0f}%" if pct > 0 else "",
+                    startangle=90,
+                    textprops={"color": "#06304a", "fontweight": "bold"}
+                )
+                pie_ax.axis("equal")
 
-            pie_ax.pie(
-                member_totals,
-                labels=labels,
-                colors=colours,
-                autopct=lambda pct: f"{pct:.0f}%" if pct > 0 else "",
-                startangle=90,
-                textprops={"color": "#06304a", "fontweight": "bold"}
-            )
-            pie_ax.axis("equal")
+                st.pyplot(pie_fig)
+                plt.close(pie_fig)
 
-            st.pyplot(pie_fig)
-            plt.close(pie_fig)
 
-            st.markdown(
-                f"<div style='text-align:center; font-weight:bold; font-size:1.2rem; color:#06304a;'>"
-                f"Total group distance (last 7 days): {total_group_distance:,} m</div>",
-                unsafe_allow_html=True
-            )
-        else:
-            st.info("No swims logged by the group in the last 7 days yet.")
+            else:
+                st.info("No swims logged by the group in the last 7 days yet.")
+        with col2:
+                st.markdown(
+                    f"<div style='text-align:center; font-weight:bold; font-size:1.05rem; color:#06304a;'>"
+                    f"Total group distance (last 7 days): {total_group_distance:,} m</div>",
+                    unsafe_allow_html=True
+                )
+
     else:
         st.caption("Select a group in the sidebar to see the group's contribution breakdown.")
 
