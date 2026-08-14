@@ -51,7 +51,7 @@ defaults = {
     "show_lc_change": False,
     "compare_group_ids": [],
     "selected_pie_member": None,
-    "pie_chart_version": 0,
+    "average_pace": None,
 }
 for key, value in defaults.items():
     if key not in st.session_state:
@@ -573,30 +573,38 @@ def render_swim_section():
         if show_group_view:
             member_totals = [sum(member["values"]) for member in group_data]
             total_group_distance = sum(member_totals)
+
             if total_group_distance > 0:
                 percentages = [
-                    (t / total_group_distance * 100) if total_group_distance else 0
-                    for t in member_totals
+                    (total / total_group_distance) * 100
+                    for total in member_totals
                 ]
 
-                selected_index = st.session_state.selected_pie_member
+                # --------------------------------------------------------
+                # GROUP CONTRIBUTION PIE CHART
+                # --------------------------------------------------------
+                pie_fig = go.Figure(
+                    data=[
+                        go.Pie(
+                            labels=[member["username"] for member in group_data],
+                            values=member_totals,
+                            marker=dict(
+                                colors=[
+                                    member["colour"] or "#000000"
+                                    for member in group_data
+                                ],
+                                line=dict(
+                                    color="#73E6FF",
+                                    width=2
+                                ),
+                            ),
+                            textinfo="none",
+                            hoverinfo="label+value",
+                            sort=False,
+                        )
+                    ]
+                )
 
-                colours = [member["colour"] or "#000000" for member in group_data]
-                pull = [0.12 if i == selected_index else 0 for i in range(len(group_data))]
-                display_colours = [
-                    colours[i] if (selected_index is None or i == selected_index) else _dim_colour(colours[i])
-                    for i in range(len(group_data))
-                ]
-
-                pie_fig = go.Figure(data=[go.Pie(
-                    labels=[member["username"] for member in group_data],
-                    values=member_totals,
-                    marker=dict(colors=display_colours, line=dict(color="#73E6FF", width=2)),
-                    pull=pull,
-                    textinfo="none",
-                    hoverinfo="label+value",
-                    sort=False,
-                )])
                 pie_fig.update_layout(
                     showlegend=False,
                     paper_bgcolor="#73E6FF",
@@ -604,7 +612,6 @@ def render_swim_section():
                     margin=dict(l=10, r=10, t=10, b=10),
                     height=350,
                     clickmode="event",
-                    uirevision="pie_chart",
                 )
 
                 clicked_points = plotly_events(
@@ -612,9 +619,12 @@ def render_swim_section():
                     click_event=True,
                     select_event=False,
                     hover_event=False,
-                    key=f"group_pie_chart_{st.session_state.pie_chart_version}",
+                    key="group_pie_chart",
                 )
 
+                # --------------------------------------------------------
+                # HANDLE PIE CLICK
+                # --------------------------------------------------------
                 if clicked_points:
                     clicked_point = clicked_points[0]
 
@@ -624,19 +634,22 @@ def render_swim_section():
                         clicked_index = clicked_point.get("pointIndex")
 
                     if clicked_index is not None:
-                        st.session_state.selected_pie_member = int(clicked_index)
-                        selected_index = int(clicked_index)
+                        clicked_index = int(clicked_index)
 
+                        st.session_state.selected_pie_member = clicked_index
 
-                if selected_index is not None:
-                    show_member_popup(
-                        group_data[selected_index],
-                        percentages[selected_index]
-                    )
+                        show_member_popup(
+                            group_data[clicked_index],
+                            percentages[clicked_index]
+                        )
+
             else:
                 st.info("No swims logged by the group in the last 7 days yet.")
+
         else:
-            st.caption("Select a group in the sidebar to see the group's contribution breakdown.")
+            st.caption(
+                "Select a group in the sidebar to see the group's contribution breakdown."
+            )
     with col2:
         last_week, always = st.tabs(["last 7 days","always"])
         with last_week:
