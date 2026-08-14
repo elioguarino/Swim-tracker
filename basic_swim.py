@@ -561,6 +561,7 @@ def render_swim_section():
 
                 # --------------------------------------------------------
                 # GROUP CONTRIBUTION PIE CHART
+                # Water-themed styling
                 # --------------------------------------------------------
                 pie_fig = go.Figure(
                     data=[
@@ -569,28 +570,42 @@ def render_swim_section():
                             values=member_totals,
                             marker=dict(
                                 colors=[
-                                    member["colour"] or "#000000"
+                                    member["colour"] or "#1597B5"
                                     for member in group_data
                                 ],
                                 line=dict(
-                                    color="#73E6FF",
-                                    width=2
+                                    color="#BDF7FF",
+                                    width=2.5,
                                 ),
                             ),
                             textinfo="none",
                             hoverinfo="label+value",
                             sort=False,
+                            hole=0.08,
+                            pull=[
+                                0.025 if i == st.session_state.get("selected_pie_member") else 0
+                                for i in range(len(group_data))
+                            ],
                         )
                     ]
                 )
 
                 pie_fig.update_layout(
                     showlegend=False,
-                    paper_bgcolor="#73E6FF",
-                    plot_bgcolor="#73E6FF",
+                    paper_bgcolor="rgba(0, 0, 0, 0)",
+                    plot_bgcolor="rgba(0, 0, 0, 0)",
                     margin=dict(l=10, r=10, t=10, b=10),
                     height=350,
                     clickmode="event",
+                    hoverlabel=dict(
+                        bgcolor="#063B4A",
+                        bordercolor="#73E6FF",
+                        font=dict(
+                            color="#E9FCFF",
+                            size=14,
+                            family="Arial",
+                        ),
+                    ),
                 )
 
                 clicked_points = plotly_events(
