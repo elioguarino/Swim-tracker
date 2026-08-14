@@ -598,7 +598,7 @@ def render_swim_section():
                     showlegend=False,
                     paper_bgcolor="#4edfff",
                     plot_bgcolor="#4edfff",
-                    margin=dict(l=10, r=10, t=10, b=10),
+                    margin=dict(l=0, r=0, t=0, b=0),
                     height=350,
                     clickmode="event",
                     hoverlabel=dict(
