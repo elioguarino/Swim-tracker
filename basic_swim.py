@@ -217,7 +217,17 @@ def make_circular(image_source, border_color, size=200, border_width=10, padding
 
     return np.array(canvas)
 
-
+def _dim_colour(hex_colour, factor=0.55):
+    """Lightens a hex colour toward white — used to fade out non-selected pie slices."""
+    hex_colour = (hex_colour or "#000000").lstrip('#')
+    try:
+        r, g, b = int(hex_colour[0:2], 16), int(hex_colour[2:4], 16), int(hex_colour[4:6], 16)
+    except ValueError:
+        return "#cccccc"
+    r = int(r + (255 - r) * factor)
+    g = int(g + (255 - g) * factor)
+    b = int(b + (255 - b) * factor)
+    return f"#{r:02x}{g:02x}{b:02x}"
 # ============================================================
 # PROFILE PICTURE FETCH  (module-level + cached)
 # ============================================================
@@ -384,6 +394,19 @@ def create_new():
 # (only this reruns when you log/delete a swim or hit refresh —
 #  the sidebar, groups list, etc. are left untouched)
 # ============================================================
+
+@st.dialog("Swimmer contribution")
+def show_member_popup(member, percentage):
+    pic_path = get_prof_pic(member["user_id"])
+    pic = make_circular(pic_path, border_color=member["colour"] or "#000000", padding=10)
+    st.image(pic, width=120)
+    st.markdown(f"### {member['username']}")
+    st.write(f"**Distance this week:** {sum(member['values']):,} m")
+    st.write(f"**Share of group total:** {percentage:.1f}%")
+    if st.button("Close"):
+        st.session_state["group_pie_chart"] = {"selection": {"points": []}}
+        st.rerun()
+
 @st.fragment
 def render_swim_section():
     selected_group_ids = st.session_state.compare_group_ids or []
@@ -533,38 +556,60 @@ def render_swim_section():
     if show_group_view:
         member_totals = [sum(member["values"]) for member in group_data]
         total_group_distance = sum(member_totals)
-        co1, co2 = st.columns([1,1])
-        with co1:
-            if total_group_distance > 0:
-                pie_fig, pie_ax = plt.subplots(figsize=(5, 5))
-                pie_fig.patch.set_facecolor("#73E6FF")
 
-                labels = [member["username"] for member in group_data]
-                colours = [member["colour"] or "#000000" for member in group_data]
+        if total_group_distance > 0:
+            percentages = [
+                (t / total_group_distance * 100) if total_group_distance else 0
+                for t in member_totals
+            ]
 
-                pie_ax.pie(
-                    member_totals,
-                    labels=labels,
-                    colors=colours,
-                    autopct=lambda pct: f"{pct:.0f}%" if pct > 0 else "",
-                    startangle=90,
-                    textprops={"color": "#06304a", "fontweight": "bold"}
-                )
-                pie_ax.axis("equal")
+            prior_selection = st.session_state.get("group_pie_chart")
+            selected_index = None
+            if prior_selection and prior_selection.get("selection", {}).get("points"):
+                selected_index = prior_selection["selection"]["points"][0]["point_index"]
 
-                st.pyplot(pie_fig)
-                plt.close(pie_fig)
+            colours = [member["colour"] or "#000000" for member in group_data]
+            pull = [0.12 if i == selected_index else 0 for i in range(len(group_data))]
+            display_colours = [
+                colours[i] if (selected_index is None or i == selected_index) else _dim_colour(colours[i])
+                for i in range(len(group_data))
+            ]
 
+            pie_fig = go.Figure(data=[go.Pie(
+                labels=[member["username"] for member in group_data],
+                values=member_totals,
+                marker=dict(colors=display_colours, line=dict(color="#73E6FF", width=2)),
+                pull=pull,
+                textinfo="none",
+                hoverinfo="skip",
+                sort=False,
+            )])
+            pie_fig.update_layout(
+                showlegend=False,
+                paper_bgcolor="#73E6FF",
+                plot_bgcolor="#73E6FF",
+                margin=dict(l=10, r=10, t=10, b=10),
+                height=350,
+            )
 
-            else:
-                st.info("No swims logged by the group in the last 7 days yet.")
-        with col2:
-                st.markdown(
-                    f"<div style='text-align:center; font-weight:bold; font-size:1.05rem; color:#06304a;'>"
-                    f"Total group distance (last 7 days): {total_group_distance:,} m</div>",
-                    unsafe_allow_html=True
-                )
+            st.plotly_chart(
+                pie_fig,
+                use_container_width=True,
+                on_select="rerun",
+                selection_mode="points",
+                key="group_pie_chart",
+            )
 
+            st.markdown(
+                f"<div style='text-align:center; font-weight:bold; font-size:1.2rem; color:#06304a;'>"
+                f"Total group distance (last 7 days): {total_group_distance:,} m</div>",
+                unsafe_allow_html=True
+            )
+
+            if selected_index is not None:
+                show_member_popup(group_data[selected_index], percentages[selected_index])
+        else:
+            st.info("No swims logged by the group in the last 7 days yet.")
     else:
         st.caption("Select a group in the sidebar to see the group's contribution breakdown.")
 
