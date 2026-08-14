@@ -16,6 +16,7 @@ import plotly.graph_objects as go
 from PIL import Image, ImageDraw, ImageOps
 from supabase import create_client, Client
 import streamlit.components.v1 as components
+from streamlit_plotly_events2 import plotly_events
 
 
 # ============================================================
@@ -603,17 +604,27 @@ def render_swim_section():
                     margin=dict(l=10, r=10, t=10, b=10),
                     height=350,
                     clickmode="event+select",
+                    uirevision="pie_chart",
                 )
 
-                pie_event = st.plotly_chart(
+                clicked_points = plotly_events(
                     pie_fig,
-                    use_container_width=True,
-                    on_select="rerun",
-                    selection_mode="points",
+                    click_event=True,
+                    select_event=False,
+                    hover_event=False,
                     key=f"group_pie_chart_{st.session_state.pie_chart_version}",
                 )
 
-                st.write("PIE EVENT:", pie_event)
+                if clicked_points:
+                    clicked_index = clicked_points[0]["pointIndex"]
+
+                    st.session_state.selected_pie_member = clicked_index
+
+                    # Force the Plotly component to reset so the same click
+                    # isn't processed again on the next fragment rerun.
+                    st.session_state.pie_chart_version += 1
+
+                    st.rerun(scope="fragment")
 
 
                 if selected_index is not None:
