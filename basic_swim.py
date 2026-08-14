@@ -629,7 +629,7 @@ def render_swim_section():
 
         st.markdown(
             f"<div style='text-align:center; font-weight:bold; font-size:1.2rem; color:#06304a;'>"
-            f"Total individual distance (last 7 days): {total_group_distance:,} m</div>",
+            f"Total individual distance (last 7 days): {total_individual_distance:,} m</div>",
             unsafe_allow_html=True
         )      
         
