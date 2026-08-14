@@ -653,11 +653,11 @@ def render_swim_section():
             # LAST 7 DAYS
             # --------------------------------------------------------
             st.markdown(
-                "<div style='background:#4edfff; border-radius:14px; padding:16px 20px; box-shadow:0 4px 12px rgba(6,48,74,0.12);'>",
-                unsafe_allow_html=True
-            )
-            st.markdown(
-                "<div style='text-align:center; font-size:1.15rem; font-weight:bold; color:#06304a; padding-bottom:10px;'>Statistics</div>",
+                "<div style='text-align:center; margin-bottom:12px;'>"
+                "<span style='display:inline-block; background:#06304a; color:#4edfff; "
+                "padding:6px 18px; border-radius:20px; font-size:0.9rem; "
+                "font-weight:bold; letter-spacing:0.5px;'>Statistics</span>"
+                "</div>",
                 unsafe_allow_html=True
             )
             # group total
