@@ -609,7 +609,7 @@ def render_swim_section():
         else:
             st.caption("Select a group in the sidebar to see the group's contribution breakdown.")
     with col2:
-        last_week, always = st.tabs()
+        last_week, always = st.tabs(["last 7 days","always"])
         with last_week:
             #group total
 
