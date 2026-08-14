@@ -562,35 +562,50 @@ def render_swim_section():
                 # --------------------------------------------------------
                 # GROUP CONTRIBUTION PIE CHART
                 # --------------------------------------------------------
-                pie_fig = go.Figure(
-                    data=[
-                        go.Pie(
-                            labels=[member["username"] for member in group_data],
-                            values=member_totals,
-                            marker=dict(
-                                colors=[
-                                    member["colour"] or "#000000"
-                                    for member in group_data
-                                ],
-                                line=dict(
-                                    color="#73E6FF",
-                                    width=2
-                                ),
-                            ),
-                            textinfo="none",
-                            hoverinfo="label+value",
-                            sort=False,
-                        )
-                    ]
-                )
+                pie_fig = go.Figure(data=[go.Pie(
+                    labels=[member["username"] for member in group_data],
+                    values=member_totals,
 
+                    # Keep each swimmer's colour
+                    marker=dict(
+                        colors=colours,
+                        line=dict(
+                            color="#b9f5ff",
+                            width=3
+                        ),
+                    ),
+
+                    textinfo="none",
+                    hoverinfo="label+value",
+                    sort=False,
+
+                    # Makes the pie feel less cramped
+                    hole=0.08,
+                )])
                 pie_fig.update_layout(
                     showlegend=False,
-                    paper_bgcolor="#73E6FF",
-                    plot_bgcolor="#73E6FF",
+
+                    # Deep-water background
+                    paper_bgcolor="#39cce8",
+                    plot_bgcolor="#39cce8",
+
                     margin=dict(l=10, r=10, t=10, b=10),
                     height=350,
-                    clickmode="event",
+
+                    # Slightly softer visual feel
+                    font=dict(
+                        family="Arial",
+                        color="#06304a"
+                    ),
+
+                    hoverlabel=dict(
+                        bgcolor="#ffffff",
+                        bordercolor="#73e6ff",
+                        font=dict(
+                            color="#06304a",
+                            size=14
+                        )
+                    ),
                 )
 
                 clicked_points = plotly_events(
