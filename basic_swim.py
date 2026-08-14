@@ -656,7 +656,10 @@ def render_swim_section():
                 "<div style='background:#4edfff; border-radius:14px; padding:16px 20px; box-shadow:0 4px 12px rgba(6,48,74,0.12);'>",
                 unsafe_allow_html=True
             )
-
+            st.markdown(
+                "<div style='text-align:center; font-size:1.15rem; font-weight:bold; color:#06304a; padding-bottom:10px;'>Statistics</div>",
+                unsafe_allow_html=True
+            )
             # group total
             if show_group_view:
                 member_totals = [sum(member["values"]) for member in group_data]
@@ -729,9 +732,13 @@ def render_swim_section():
                 "<div style='background:#4edfff; border-radius:14px; padding:16px 20px; box-shadow:0 4px 12px rgba(6,48,74,0.12);'>",
                 unsafe_allow_html=True
             )
+            st.markdown(
+                "<div style='text-align:center; font-size:1.15rem; font-weight:bold; color:#06304a; padding-bottom:10px;'>Statistics</div>",
+                unsafe_allow_html=True
+            )
 
             st.markdown(
-                "<div style='display:flex; justify-content:space-between; align-items:center; padding:10px 4px; border-bottom:1px solid rgba(6,48,74,0.18); color:#06304a;'><span style='font-weight:600;'>Total group distance</span><span style='font-weight:bold;'>Since creation coming soon!</span></div>",
+                "<div style='display:flex; justify-content:space-between; align-items:center; padding:10px 4px; border-bottom:1px solid rgba(6,48,74,0.18); color:#06304a;'><span style='font-weight:600;'>Total group distance</span><span style='font-weight:bold;'>Since account creation - coming soon!</span></div>",
                 unsafe_allow_html=True
             )
 
