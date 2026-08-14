@@ -645,117 +645,143 @@ def render_swim_section():
             st.caption(
                 "Select a group in the sidebar to see the group's contribution breakdown."
             )
-    with col2:
-        last_week, always = st.tabs(["last 7 days","always"])
-        with last_week:
-            #group total
+with col2:
+    last_week, always = st.tabs(["last 7 days", "always"])
 
-            if show_group_view:
-                member_totals = [sum(member["values"]) for member in group_data]
-                total_group_distance = sum(member_totals)
-                st.markdown(
-                    f"<div style='text-align:center; font-weight:bold; font-size:1.0rem; color:#06304a;'>"
-                    f"Total group distance: {total_group_distance:,} m</div>",
-                    unsafe_allow_html=True
-                )
-            
-            #individual total
+    with last_week:
+        # --------------------------------------------------------
+        # LAST 7 DAYS
+        # --------------------------------------------------------
+        st.markdown(
+            "<div style='background:#4edfff; border-radius:14px; padding:16px 20px; box-shadow:0 4px 12px rgba(6,48,74,0.12);'>",
+            unsafe_allow_html=True
+        )
 
-            labels, values = get_last_7_days_totals(st.session_state.current_user_id)
-            #im not using labels so i hope its fine to just... leave it lol
-            total_individual_distance = 0
-            for day in values:
-                total_individual_distance = total_individual_distance + day
+        # group total
+        if show_group_view:
+            member_totals = [sum(member["values"]) for member in group_data]
+            total_group_distance = sum(member_totals)
 
             st.markdown(
-                f"<div style='text-align:center; font-weight:bold; font-size:1.0rem; color:#06304a;'>"
-                f"Total individual distance: {total_individual_distance:,} m</div>",
-                unsafe_allow_html=True
-            )      
-
-            #individual average pace (7 days)
-
-            total_week_seconds = 0
-
-            today = date.today()
-            a_week_ago = today - timedelta(days=6)
-            try:
-                response = supabase.table("swims")\
-                    .select("swim_date", "duration_seconds","distance_m")\
-                    .eq("user_id", st.session_state.current_user_id)\
-                    .gte("swim_date", a_week_ago.isoformat())\
-                    .lte("swim_date", today.isoformat())\
-                    .not_.is_("duration_seconds", "null")\
-                    .execute()
-
-                for row in response.data:
-                    total_week_seconds += row["duration_seconds"]
-
-                total_timed_week_meters = sum(row["distance_m"] for row in response.data)
-
-                #ok now we have total distance swam (with times added on - otherwise it doesnt count) in the week, and total time taken in the week
-
-                if total_timed_week_meters > 0:
-                    raw_pace_seconds = (total_week_seconds/total_timed_week_meters)*100
-                    pace_minutes, pace_seconds = divmod(int(raw_pace_seconds), 60)
-
-                    st.markdown(
-                        f"<div style='text-align:center; font-weight:bold; font-size:1.0rem; color:#06304a;'>"
-                        f"Average pace: {pace_minutes:,}:{pace_seconds:,} per 100m </div>",
-                        unsafe_allow_html=True
-                    )   
-
-            except Exception as e:
-                st.error(f"error:{e}")
-        with always:
-            st.markdown(
-                f"<div style='text-align:center; font-weight:bold; font-size:1.0rem; color:#06304a;'>"
-                f"Total group distance since creation coming soon!</div>",
+                f"<div style='display:flex; justify-content:space-between; align-items:center; padding:10px 4px; border-bottom:1px solid rgba(6,48,74,0.18); color:#06304a;'><span style='font-weight:600;'>Total group distance</span><span style='font-weight:bold;'>{total_group_distance:,} m</span></div>",
                 unsafe_allow_html=True
             )
-            try:
-                total_swam = 0
-                total_spent = 0
-                total_timed_swam = 0
-                today = date.today()
-                untimed = supabase.table("swims")\
-                    .select("swim_date","distance_m")\
-                    .eq("user_id", st.session_state.current_user_id)\
-                    .lte("swim_date", today.isoformat())\
-                    .execute()          
 
-                timed = supabase.table("swims")\
-                    .select("swim_date", "duration_seconds","distance_m")\
-                    .eq("user_id", st.session_state.current_user_id)\
-                    .lte("swim_date", today.isoformat())\
-                    .not_.is_("duration_seconds", "null")\
-                    .execute()
+        # individual total
+        labels, values = get_last_7_days_totals(st.session_state.current_user_id)
+        # im not using labels so i hope its fine to just... leave it lol
+        total_individual_distance = 0
+        for day in values:
+            total_individual_distance = total_individual_distance + day
 
-                for row in untimed.data:
-                    total_swam += row["distance_m"]
-                
+        st.markdown(
+            f"<div style='display:flex; justify-content:space-between; align-items:center; padding:10px 4px; border-bottom:1px solid rgba(6,48,74,0.18); color:#06304a;'><span style='font-weight:600;'>Total individual distance</span><span style='font-weight:bold;'>{total_individual_distance:,} m</span></div>",
+            unsafe_allow_html=True
+        )
+
+        # individual average pace (7 days)
+        total_week_seconds = 0
+
+        today = date.today()
+        a_week_ago = today - timedelta(days=6)
+
+        try:
+            response = supabase.table("swims")\
+                .select("swim_date", "duration_seconds", "distance_m")\
+                .eq("user_id", st.session_state.current_user_id)\
+                .gte("swim_date", a_week_ago.isoformat())\
+                .lte("swim_date", today.isoformat())\
+                .not_.is_("duration_seconds", "null")\
+                .execute()
+
+            for row in response.data:
+                total_week_seconds += row["duration_seconds"]
+
+            total_timed_week_meters = sum(
+                row["distance_m"] for row in response.data
+            )
+
+            # ok now we have total distance swam (with times added on - otherwise it doesnt count)
+            # in the week, and total time taken in the week
+
+            if total_timed_week_meters > 0:
+                raw_pace_seconds = (total_week_seconds / total_timed_week_meters) * 100
+                pace_minutes, pace_seconds = divmod(int(raw_pace_seconds), 60)
+
                 st.markdown(
-                    f"<div style='text-align:center; font-weight:bold; font-size:1.0rem; color:#06304a;'>"
-                    f"Total individual distance: {total_swam:,} m</div>",
+                    f"<div style='display:flex; justify-content:space-between; align-items:center; padding:10px 4px; color:#06304a;'><span style='font-weight:600;'>Average pace</span><span style='font-weight:bold;'>{pace_minutes:,}:{pace_seconds:02d} per 100m</span></div>",
                     unsafe_allow_html=True
                 )
 
-                for row in timed.data:
-                    total_timed_swam += row["distance_m"]
-                    total_spent += row["duration_seconds"]
+        except Exception as e:
+            st.error(f"error:{e}")
 
-                if total_timed_swam > 0:
-                    raw_pace_seconds = (total_spent/total_timed_swam)*100
-                    pace_minutes, pace_seconds = divmod(int(raw_pace_seconds), 60)
+        st.markdown(
+            "</div>",
+            unsafe_allow_html=True
+        )
 
-                    st.markdown(
-                        f"<div style='text-align:center; font-weight:bold; font-size:1.0rem; color:#06304a;'>"
-                        f"Average pace: {pace_minutes:,}:{pace_seconds:,} per 100m </div>",
-                        unsafe_allow_html=True
-                    )
+    with always:
+        # --------------------------------------------------------
+        # ALL TIME
+        # --------------------------------------------------------
+        st.markdown(
+            "<div style='background:#4edfff; border-radius:14px; padding:16px 20px; box-shadow:0 4px 12px rgba(6,48,74,0.12);'>",
+            unsafe_allow_html=True
+        )
 
-            except Exception as e:
-                st.error(f"error: {e}")
+        st.markdown(
+            "<div style='display:flex; justify-content:space-between; align-items:center; padding:10px 4px; border-bottom:1px solid rgba(6,48,74,0.18); color:#06304a;'><span style='font-weight:600;'>Total group distance</span><span style='font-weight:bold;'>Since creation coming soon!</span></div>",
+            unsafe_allow_html=True
+        )
+
+        try:
+            total_swam = 0
+            total_spent = 0
+            total_timed_swam = 0
+            today = date.today()
+
+            untimed = supabase.table("swims")\
+                .select("swim_date", "distance_m")\
+                .eq("user_id", st.session_state.current_user_id)\
+                .lte("swim_date", today.isoformat())\
+                .execute()
+
+            timed = supabase.table("swims")\
+                .select("swim_date", "duration_seconds", "distance_m")\
+                .eq("user_id", st.session_state.current_user_id)\
+                .lte("swim_date", today.isoformat())\
+                .not_.is_("duration_seconds", "null")\
+                .execute()
+
+            for row in untimed.data:
+                total_swam += row["distance_m"]
+
+            st.markdown(
+                f"<div style='display:flex; justify-content:space-between; align-items:center; padding:10px 4px; border-bottom:1px solid rgba(6,48,74,0.18); color:#06304a;'><span style='font-weight:600;'>Total individual distance</span><span style='font-weight:bold;'>{total_swam:,} m</span></div>",
+                unsafe_allow_html=True
+            )
+
+            for row in timed.data:
+                total_timed_swam += row["distance_m"]
+                total_spent += row["duration_seconds"]
+
+            if total_timed_swam > 0:
+                raw_pace_seconds = (total_spent / total_timed_swam) * 100
+                pace_minutes, pace_seconds = divmod(int(raw_pace_seconds), 60)
+
+                st.markdown(
+                    f"<div style='display:flex; justify-content:space-between; align-items:center; padding:10px 4px; color:#06304a;'><span style='font-weight:600;'>Average pace</span><span style='font-weight:bold;'>{pace_minutes:,}:{pace_seconds:02d} per 100m</span></div>",
+                    unsafe_allow_html=True
+                )
+
+        except Exception as e:
+            st.error(f"error: {e}")
+
+        st.markdown(
+            "</div>",
+            unsafe_allow_html=True
+        )
 
     with open_water_tab:
         st.write("Sea swim tracking coming soon.")
