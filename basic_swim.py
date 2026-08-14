@@ -658,12 +658,12 @@ def render_swim_section():
             #ok now we have total distance swam (with times added on - otherwise it doesnt count) in the week, and total time taken in the week
 
             if total_timed_week_meters > 0:
-                raw_pace_seconds = (total_week_seconds/total_timed_week_meters)
+                raw_pace_seconds = (total_week_seconds/total_timed_week_meters)*100
                 pace_minutes, pace_seconds = divmod(int(raw_pace_seconds), 60)
 
                 st.markdown(
                     f"<div style='text-align:center; font-weight:bold; font-size:1.0rem; color:#06304a;'>"
-                    f"Average pace (last 7 days): {pace_minutes:,},{pace_seconds:,} per 100m </div>",
+                    f"Average pace (last 7 days): {pace_minutes:,}:{pace_seconds:,} per 100m </div>",
                     unsafe_allow_html=True
                 )   
 
