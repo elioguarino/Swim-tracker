@@ -643,7 +643,7 @@ def render_swim_section():
         a_week_ago = today - timedelta(days=6)
         try:
             response = supabase.table("swims")\
-                .select("swim_date", "duration_seconds")\
+                .select("swim_date", "duration_seconds, "distance_m"")\
                 .eq("user_id", st.session_state.current_user_id)\
                 .gte("swim_date", a_week_ago.isoformat())\
                 .lte("swim_date", today.isoformat())\
