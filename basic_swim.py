@@ -467,6 +467,18 @@ def render_swim_section():
                 value=date.today(), max_value=date.today()
             )
 
+            a, b, c = st.columns([1,1,1])
+            st.subheader("Time (optional)")
+            with a:
+                time_taken_h = st.number_input("hours", min_value=0, value=0, step=1)
+            with b:
+                time_taken_m = st.number_input("minutes", min_value=0, max_value=59, value=0, step=1)
+            with c:
+                time_taken_s = st.number_input("seconds", min_value=0, max_value=59, value=0, step=1)
+            total_time_s = int((time_taken_h*3600) + (time_taken_m*60) + time_taken_s)
+
+
+
             a1 = st.button("log swim", width="stretch", key="log_swim_btn")
             if a1:
                 try:
@@ -475,6 +487,7 @@ def render_swim_section():
                         "user_id": st.session_state.current_user_id,
                         "swim_date": log_date.isoformat(),
                         "distance_m": mtrs,
+                        "duration_seconds": total_time_s if total_time_s else None,
                     }).execute()
                     clear_swim_caches()
                     with st.spinner("adding data..."):
