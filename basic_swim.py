@@ -49,6 +49,8 @@ defaults = {
     "profile_pic": None,
     "show_lc_change": False,
     "compare_group_ids": [],
+    "selected_pie_member": None,
+    "pie_chart_version": 0,
 }
 for key, value in defaults.items():
     if key not in st.session_state:
@@ -398,13 +400,25 @@ def create_new():
 @st.dialog("Swimmer contribution")
 def show_member_popup(member, percentage):
     pic_path = get_prof_pic(member["user_id"])
-    pic = make_circular(pic_path, border_color=member["colour"] or "#000000", padding=10)
+    pic = make_circular(
+        pic_path,
+        border_color=member["colour"] or "#000000",
+        padding=10
+    )
+
     st.image(pic, width=120)
     st.markdown(f"### {member['username']}")
     st.write(f"**Distance this week:** {sum(member['values']):,} m")
     st.write(f"**Share of group total:** {percentage:.1f}%")
+
     if st.button("Close"):
-        st.session_state["group_pie_chart"] = {"selection": {"points": []}}
+        # Clear OUR selection state
+        st.session_state.selected_pie_member = None
+
+        # Give the Plotly chart a new identity.
+        # This causes the old Plotly selection to disappear.
+        st.session_state.pie_chart_version += 1
+
         st.rerun()
 
 @st.fragment
@@ -564,10 +578,7 @@ def render_swim_section():
                     for t in member_totals
                 ]
 
-                prior_selection = st.session_state.get("group_pie_chart")
-                selected_index = None
-                if prior_selection and prior_selection.get("selection", {}).get("points"):
-                    selected_index = prior_selection["selection"]["points"][0]["point_index"]
+                selected_index = st.session_state.selected_pie_member
 
                 colours = [member["colour"] or "#000000" for member in group_data]
                 pull = [0.12 if i == selected_index else 0 for i in range(len(group_data))]
@@ -593,12 +604,12 @@ def render_swim_section():
                     height=350,
                 )
 
-                st.plotly_chart(
+                pie_event = st.plotly_chart(
                     pie_fig,
                     use_container_width=True,
                     on_select="rerun",
                     selection_mode="points",
-                    key="group_pie_chart",
+                    key=f"group_pie_chart_{st.session_state.pie_chart_version}",
                 )
 
 
@@ -720,8 +731,6 @@ def render_swim_section():
             except Exception as e:
                 st.error(f"error: {e}")
 
-
-        
     with open_water_tab:
         st.write("Sea swim tracking coming soon.")
 
