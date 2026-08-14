@@ -641,19 +641,22 @@ def render_swim_section():
 
         today = date.today()
         a_week_ago = today - timedelta(days=6)
-        response = supabase.table("swims")\
-            .select("swim_date", "duration_seconds")\
-            .eq("user_id", st.session_state.current_user_id)\
-            .gte("swim_date", a_week_ago.isoformat())\
-            .lte("swim_date", today.isoformat)\
-            .not_.is_("duration_seconds", "null")\
-            .execute()
+        try:
+            response = supabase.table("swims")\
+                .select("swim_date", "duration_seconds")\
+                .eq("user_id", st.session_state.current_user_id)\
+                .gte("swim_date", a_week_ago.isoformat())\
+                .lte("swim_date", today.isoformat)\
+                .not_.is_("duration_seconds", "null")\
+                .execute()
 
-        for row in response.data:
-            total_week_seconds += row["duration_seconds"]
+            for row in response.data:
+                total_week_seconds += row["duration_seconds"]
 
-        total_timed_week_meters = sum(row["distance_m"] for row in response.data)
+            total_timed_week_meters = sum(row["distance_m"] for row in response.data)
 
+        except Exception as e:
+            st.error(f"error:{e}")
         #ok now we have total distance swam (with times added on - otherwise it doesnt count) in the week, and total time taken in the week
 
         if total_timed_week_meters > 0:
