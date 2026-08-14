@@ -618,7 +618,7 @@ def render_swim_section():
                 total_group_distance = sum(member_totals)
                 st.markdown(
                     f"<div style='text-align:center; font-weight:bold; font-size:1.0rem; color:#06304a;'>"
-                    f"Total group distance (last 7 days): {total_group_distance:,} m</div>",
+                    f"Total group distance: {total_group_distance:,} m</div>",
                     unsafe_allow_html=True
                 )
             
@@ -632,7 +632,7 @@ def render_swim_section():
 
             st.markdown(
                 f"<div style='text-align:center; font-weight:bold; font-size:1.0rem; color:#06304a;'>"
-                f"Total individual distance (last 7 days): {total_individual_distance:,} m</div>",
+                f"Total individual distance: {total_individual_distance:,} m</div>",
                 unsafe_allow_html=True
             )      
 
@@ -664,14 +664,61 @@ def render_swim_section():
 
                     st.markdown(
                         f"<div style='text-align:center; font-weight:bold; font-size:1.0rem; color:#06304a;'>"
-                        f"Average pace (last 7 days): {pace_minutes:,}:{pace_seconds:,} per 100m </div>",
+                        f"Average pace: {pace_minutes:,}:{pace_seconds:,} per 100m </div>",
                         unsafe_allow_html=True
                     )   
 
             except Exception as e:
                 st.error(f"error:{e}")
         with always:
-            st.write("coming soon!")
+            st.markdown(
+                f"<div style='text-align:center; font-weight:bold; font-size:1.0rem; color:#06304a;'>"
+                f"Total group distance since creation coming soon!</div>",
+                unsafe_allow_html=True
+            )
+            try:
+                total_swam = 0
+                total_spent = 0
+                total_timed_swam = 0
+                today = date.today()
+                untimed = supabase.table("swims")\
+                    .select("swim_date","distance_m")\
+                    .eq("user_id", st.session_state.current_user_id)\
+                    .lte("swim_date", today.isoformat())\
+                    .execute()          
+
+                timed = supabase.table("swims")\
+                    .select("swim_date", "duration_seconds","distance_m")\
+                    .eq("user_id", st.session_state.current_user_id)\
+                    .lte("swim_date", today.isoformat())\
+                    .not_.is_("duration_seconds", "null")\
+                    .execute()
+
+                for row in untimed.data:
+                    total_swam += row["distance_m"]
+                
+                st.markdown(
+                    f"<div style='text-align:center; font-weight:bold; font-size:1.0rem; color:#06304a;'>"
+                    f"Total individual distance: {total_swam:,} m</div>",
+                    unsafe_allow_html=True
+                )
+
+                for row in timed.data:
+                    total_timed_swam += row["distance_m"]
+                    total_spent += row["duration_seconds"]
+
+                if total_timed_swam > 0:
+                    raw_pace_seconds = (total_spent/total_timed_swam)*100
+                    pace_minutes, pace_seconds = divmod(int(raw_pace_seconds), 60)
+
+                    st.markdown(
+                        f"<div style='text-align:center; font-weight:bold; font-size:1.0rem; color:#06304a;'>"
+                        f"Average pace: {pace_minutes:,}:{pace_seconds:,} per 100m </div>",
+                        unsafe_allow_html=True
+                    )
+
+            except Exception as e:
+                st.error(f"error: {e}")
 
 
         
