@@ -603,7 +603,7 @@ def render_swim_section():
                     plot_bgcolor="#73E6FF",
                     margin=dict(l=10, r=10, t=10, b=10),
                     height=350,
-                    clickmode="event+select",
+                    clickmode="event",
                     uirevision="pie_chart",
                 )
 
@@ -616,24 +616,23 @@ def render_swim_section():
                 )
 
                 if clicked_points:
-                    st.write("CLICK EVENT:", clicked_points)
-
                     clicked_point = clicked_points[0]
 
-                    clicked_index = (
-                        clicked_point.get("pointNumber")
-                        or clicked_point.get("pointIndex")
-                    )
+                    clicked_index = clicked_point.get("pointNumber")
+
+                    if clicked_index is None:
+                        clicked_index = clicked_point.get("pointIndex")
 
                     if clicked_index is not None:
                         st.session_state.selected_pie_member = int(clicked_index)
-                        st.rerun(scope="fragment")
-
-                    st.rerun(scope="fragment")
+                        selected_index = int(clicked_index)
 
 
                 if selected_index is not None:
-                    show_member_popup(group_data[selected_index], percentages[selected_index])
+                    show_member_popup(
+                        group_data[selected_index],
+                        percentages[selected_index]
+                    )
             else:
                 st.info("No swims logged by the group in the last 7 days yet.")
         else:
