@@ -616,13 +616,18 @@ def render_swim_section():
                 )
 
                 if clicked_points:
-                    clicked_index = clicked_points[0]["pointIndex"]
+                    st.write("CLICK EVENT:", clicked_points)
 
-                    st.session_state.selected_pie_member = clicked_index
+                    clicked_point = clicked_points[0]
 
-                    # Force the Plotly component to reset so the same click
-                    # isn't processed again on the next fragment rerun.
-                    st.session_state.pie_chart_version += 1
+                    clicked_index = (
+                        clicked_point.get("pointNumber")
+                        or clicked_point.get("pointIndex")
+                    )
+
+                    if clicked_index is not None:
+                        st.session_state.selected_pie_member = int(clicked_index)
+                        st.rerun(scope="fragment")
 
                     st.rerun(scope="fragment")
 
