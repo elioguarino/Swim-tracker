@@ -646,7 +646,7 @@ def render_swim_section():
                 .select("swim_date", "duration_seconds")\
                 .eq("user_id", st.session_state.current_user_id)\
                 .gte("swim_date", a_week_ago.isoformat())\
-                .lte("swim_date", today.isoformat)\
+                .lte("swim_date", today.isoformat())\
                 .not_.is_("duration_seconds", "null")\
                 .execute()
 
