@@ -654,7 +654,7 @@ def render_swim_section():
             # --------------------------------------------------------
             st.markdown(
                 "<div style='text-align:center; margin-bottom:12px;'>"
-                "<span style='display:inline-block; background:#06304a; color:#4edfff; "
+                "<span style='display:inline-block; background:#4edfff; color:#000000; "
                 "padding:6px 18px; border-radius:20px; font-size:0.9rem; "
                 "font-weight:bold; letter-spacing:0.5px;'>Statistics</span>"
                 "</div>",
