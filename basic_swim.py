@@ -574,7 +574,7 @@ def render_swim_section():
                                     for member in group_data
                                 ],
                                 line=dict(
-                                    color="#BDF7FF",
+                                    color="#FFFFFF",
                                     width=2.5,
                                 ),
                             ),
@@ -592,16 +592,16 @@ def render_swim_section():
 
                 pie_fig.update_layout(
                     showlegend=False,
-                    paper_bgcolor="rgba(0, 0, 0, 0)",
-                    plot_bgcolor="rgba(0, 0, 0, 0)",
+                    paper_bgcolor="#4edfff",
+                    plot_bgcolor="#4edfff",
                     margin=dict(l=10, r=10, t=10, b=10),
                     height=350,
                     clickmode="event",
                     hoverlabel=dict(
                         bgcolor="#063B4A",
-                        bordercolor="#73E6FF",
+                        bordercolor="#4edfff",
                         font=dict(
-                            color="#E9FCFF",
+                            color="#FFFFFF",
                             size=14,
                             family="Arial",
                         ),
