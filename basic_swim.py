@@ -651,7 +651,7 @@ def render_swim_section():
                 "Select a group in the sidebar to see the group's contribution breakdown."
             )
     with col2:
-        last_week, always = st.tabs(["last 7 days", "always"])
+        last_week, always = st.tabs(["last 7 days", "Since account creation"])
 
         with last_week:
             # --------------------------------------------------------
@@ -737,7 +737,7 @@ def render_swim_section():
             
 
             st.markdown(
-                "<div style='display:flex; justify-content:space-between; align-items:center; padding:10px 4px; border-bottom:1px solid rgba(6,48,74,0.18); color:#06304a;'><span style='font-weight:600;'>Total group distance</span><span style='font-weight:bold;'>Since account creation - coming soon!</span></div>",
+                "<div style='display:flex; justify-content:space-between; align-items:center; padding:10px 4px; border-bottom:1px solid rgba(6,48,74,0.18); color:#06304a;'><span style='font-weight:600;'>Total group distance</span><span style='font-weight:bold;'>Since group creation is coming soon!</span></div>",
                 unsafe_allow_html=True
             )
 
