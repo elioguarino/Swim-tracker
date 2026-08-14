@@ -612,13 +612,12 @@ def render_swim_section():
                     selection_mode="points",
                     key=f"group_pie_chart_{st.session_state.pie_chart_version}",
                 )
-                
-                if pie_event.selection.points:
-                    clicked_index = pie_event.selection.points[0]["point_index"]
 
-                    if clicked_index != st.session_state.selected_pie_member:
-                        st.session_state.selected_pie_member = clicked_index
-                        st.rerun(scope="fragment")
+                if pie_event.selection.point_indices:
+                    clicked_index = pie_event.selection.point_indices[0]
+
+                    st.session_state.selected_pie_member = clicked_index
+                    st.rerun(scope="fragment")
 
 
                 if selected_index is not None:
