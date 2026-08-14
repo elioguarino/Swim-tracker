@@ -593,7 +593,7 @@ def render_swim_section():
                     marker=dict(colors=display_colours, line=dict(color="#73E6FF", width=2)),
                     pull=pull,
                     textinfo="none",
-                    hoverinfo="skip",
+                    hoverinfo="label+value",
                     sort=False,
                 )])
                 pie_fig.update_layout(
@@ -602,6 +602,7 @@ def render_swim_section():
                     plot_bgcolor="#73E6FF",
                     margin=dict(l=10, r=10, t=10, b=10),
                     height=350,
+                    clickmode="event+select",
                 )
 
                 pie_event = st.plotly_chart(
@@ -611,6 +612,13 @@ def render_swim_section():
                     selection_mode="points",
                     key=f"group_pie_chart_{st.session_state.pie_chart_version}",
                 )
+                
+                if pie_event.selection.points:
+                    clicked_index = pie_event.selection.points[0]["point_index"]
+
+                    if clicked_index != st.session_state.selected_pie_member:
+                        st.session_state.selected_pie_member = clicked_index
+                        st.rerun(scope="fragment")
 
 
                 if selected_index is not None:
