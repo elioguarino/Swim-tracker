@@ -582,6 +582,10 @@ def render_swim_section():
                             hoverinfo="label+value",
                             sort=False,
                             hole=0.08,
+                            domain=dict(
+                                x=[0, 1],
+                                y=[0, 1],
+                            ),
                             pull=[
                                 0.025 if i == st.session_state.get("selected_pie_member") else 0
                                 for i in range(len(group_data))
