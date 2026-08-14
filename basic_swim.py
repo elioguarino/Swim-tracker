@@ -50,7 +50,6 @@ defaults = {
     "profile_pic": None,
     "show_lc_change": False,
     "compare_group_ids": [],
-    "selected_pie_member": None,
     "average_pace": None,
 }
 for key, value in defaults.items():
@@ -220,17 +219,7 @@ def make_circular(image_source, border_color, size=200, border_width=10, padding
 
     return np.array(canvas)
 
-def _dim_colour(hex_colour, factor=0.55):
-    """Lightens a hex colour toward white — used to fade out non-selected pie slices."""
-    hex_colour = (hex_colour or "#000000").lstrip('#')
-    try:
-        r, g, b = int(hex_colour[0:2], 16), int(hex_colour[2:4], 16), int(hex_colour[4:6], 16)
-    except ValueError:
-        return "#cccccc"
-    r = int(r + (255 - r) * factor)
-    g = int(g + (255 - g) * factor)
-    b = int(b + (255 - b) * factor)
-    return f"#{r:02x}{g:02x}{b:02x}"
+
 # ============================================================
 # PROFILE PICTURE FETCH  (module-level + cached)
 # ============================================================
@@ -411,16 +400,6 @@ def show_member_popup(member, percentage):
     st.markdown(f"### {member['username']}")
     st.write(f"**Distance this week:** {sum(member['values']):,} m")
     st.write(f"**Share of group total:** {percentage:.1f}%")
-
-    if st.button("Close"):
-        # Clear OUR selection state
-        st.session_state.selected_pie_member = None
-
-        # Give the Plotly chart a new identity.
-        # This causes the old Plotly selection to disappear.
-        st.session_state.pie_chart_version += 1
-
-        st.rerun()
 
 @st.fragment
 def render_swim_section():
@@ -620,6 +599,7 @@ def render_swim_section():
                     select_event=False,
                     hover_event=False,
                     key="group_pie_chart",
+                    override_height=350,
                 )
 
                 # --------------------------------------------------------
