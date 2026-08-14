@@ -71,3 +71,4 @@ watchdog==6.0.0
 websockets==15.0.1
 yarl==1.24.5
 plotly
+streamlit-plotly-events2==0.0.7
