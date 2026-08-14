@@ -547,7 +547,7 @@ def render_swim_section():
     # ------------------------------------------------------------
     # STATISTICS
     # ------------------------------------------------------------
-    col1, col2 = st.columns([1,1])
+    col1, col2 = st.columns([1,1], gap="medium")
     with col1:
         if show_group_view:
             member_totals = [sum(member["values"]) for member in group_data]
@@ -600,6 +600,7 @@ def render_swim_section():
                     plot_bgcolor="#4edfff",
                     margin=dict(l=0, r=0, t=0, b=0),
                     height=350,
+                    autosize=True,
                     clickmode="event",
                     hoverlabel=dict(
                         bgcolor="#063B4A",
