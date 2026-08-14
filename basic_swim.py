@@ -621,8 +621,9 @@ def render_swim_section():
         
         
         labels, values = get_last_7_days_totals(st.session_state.current_user_id)
+        #im not using labels so i hope its fine to just... leave it lol
         total_individual_distance = 0
-        for day in get_last_7_days_totals:
+        for day in values:
             total_individual_distance = total_individual_distance + day
         
 
