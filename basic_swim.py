@@ -561,11 +561,10 @@ def render_swim_section():
         # ------------------------------------------------------------
         # DELETE SWIM
         # ------------------------------------------------------------
-        @st.dialog("Delete a swim - table")
-        def delete_swim_popup():
+        with st.popover("Delete a swim", width="stretch"):
             try:
                 last_week_swims = supabase.table("swims") \
-                    .select("id, distance_m, swim_date, distance_m") \
+                    .select("id, distance_m, swim_date") \
                     .eq("user_id", st.session_state.current_user_id) \
                     .gte("swim_date", (date.today() - timedelta(days=6)).isoformat()) \
                     .lte("swim_date", date.today().isoformat()) \
@@ -581,18 +580,23 @@ def render_swim_section():
                 today = date.today()
                 days = [today - timedelta(days=i) for i in range(6, -1, -1)]
 
-                columns = st.columns(7)
+                columns = st.columns(7, gap="small")
 
                 for col, day in zip(columns, days):
                     with col:
                         st.markdown(
-                            f"**{day.strftime('%A')}**"
+                            f"<div style='font-size:12px; font-weight:600; text-align:center;'>"
+                            f"{day.strftime('%A')}</div>",
+                            unsafe_allow_html=True
                         )
 
                         swims = swims_by_day.get(day, [])
 
                         if not swims:
-                            st.caption("No swims")
+                            st.markdown(
+                                "<div style='font-size:10px; text-align:center;'>—</div>",
+                                unsafe_allow_html=True
+                            )
 
                         for swim in swims:
                             if st.button(
@@ -608,19 +612,8 @@ def render_swim_section():
 
                                 clear_swim_caches()
                                 st.rerun(scope="fragment")
-
             except Exception as e:
                 st.error(f"error: {e}")
-
-
-        delete_swim = st.button(
-            "Delete a swim",
-            width="stretch",
-            key="delete_swim_btn"
-        )
-
-        if delete_swim:
-            delete_swim_popup()
     with cool_dividy_things2:
         if st.button("Refresh graph", width="stretch"):
             clear_swim_caches()
