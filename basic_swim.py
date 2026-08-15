@@ -561,45 +561,66 @@ def render_swim_section():
         # ------------------------------------------------------------
         # DELETE SWIM
         # ------------------------------------------------------------
-        delete_swim = st.button("Delete a swim", width="stretch", key="delete_swim_btn")
-        if delete_swim:
+        @st.dialog("Delete a swim - table")
+        def delete_swim_popup():
             try:
                 last_week_swims = supabase.table("swims") \
-                    .select("id, distance_m, swim_date")\
-                    .eq("user_id", st.session_state.current_user_id)\
-                    .gte("swim_date", (date.today() - timedelta(days=6)).isoformat())\
-                    .lte("swim_date", date.today().isoformat())\
+                    .select("id, distance_m, swim_date, distance_m") \
+                    .eq("user_id", st.session_state.current_user_id) \
+                    .gte("swim_date", (date.today() - timedelta(days=6)).isoformat()) \
+                    .lte("swim_date", date.today().isoformat()) \
+                    .order("swim_date", desc=False) \
                     .execute()
 
-                
+                swims_by_day = {}
 
+                for swim in last_week_swims.data:
+                    swim_day = date.fromisoformat(swim["swim_date"])
+                    swims_by_day.setdefault(swim_day, []).append(swim)
 
+                today = date.today()
+                days = [today - timedelta(days=i) for i in range(6, -1, -1)]
 
+                columns = st.columns(7)
 
+                for col, day in zip(columns, days):
+                    with col:
+                        st.markdown(
+                            f"**{day.strftime('%A')}**"
+                        )
 
+                        swims = swims_by_day.get(day, [])
 
+                        if not swims:
+                            st.caption("No swims")
 
+                        for swim in swims:
+                            if st.button(
+                                f'{swim["distance_m"]}m',
+                                key=f'delete_swim_{swim["id"]}',
+                                width="stretch"
+                            ):
+                                supabase.table("swims") \
+                                    .delete() \
+                                    .eq("id", swim["id"]) \
+                                    .eq("user_id", st.session_state.current_user_id) \
+                                    .execute()
 
+                                clear_swim_caches()
+                                st.rerun(scope="fragment")
 
-
-
-                last_swim = supabase.table("swims") \
-                    .select("id")\
-                    .eq("user_id", st.session_state.current_user_id)\
-                    .order("created_at", desc=True)\
-                    .limit(1)\
-                    .execute()
-
-                if last_swim.data:
-                    swim_id = last_swim.data[0]["id"]
-                    supabase.table("swims").delete().eq("id", swim_id).execute()
-                    clear_swim_caches()
-                    st.success("last swim deleted")
-                else:
-                    st.warning("no swims to delete")
-                st.rerun(scope="fragment")
             except Exception as e:
                 st.error(f"error: {e}")
+
+
+        delete_swim = st.button(
+            "Delete a swim",
+            width="stretch",
+            key="delete_swim_btn"
+        )
+
+        if delete_swim:
+            delete_swim_popup()
     with cool_dividy_things2:
         if st.button("Refresh graph", width="stretch"):
             clear_swim_caches()
