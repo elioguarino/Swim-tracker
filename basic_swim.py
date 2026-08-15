@@ -578,7 +578,7 @@ def render_swim_section():
                     swims_by_day.setdefault(swim_day, []).append(swim)
 
                 today = date.today()
-                days = [today - timedelta(days=i) for i in range(6, -1, -1)]
+                days = [today - timedelta(days=i) for i in range(7)]
 
                 columns = st.columns(7, gap="small")
                 st.markdown("""
