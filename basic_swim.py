@@ -343,11 +343,50 @@ def get_group_totals(group_ids):
         st.error(f"error loading group data: {e}")
         return []
 
+@st.cache_data(ttl=30, show_spinner=False)
+def get_week_pace_stats(user_id):
+    today = date.today()
+    a_week_ago = today - timedelta(days=6)
+    response = supabase.table("swims")\
+        .select("swim_date", "duration_seconds", "distance_m")\
+        .eq("user_id", user_id)\
+        .gte("swim_date", a_week_ago.isoformat())\
+        .lte("swim_date", today.isoformat())\
+        .not_.is_("duration_seconds", "null")\
+        .execute()
+    total_seconds = sum(row["duration_seconds"] for row in response.data)
+    total_meters = sum(row["distance_m"] for row in response.data)
+    return total_seconds, total_meters
+
+
+@st.cache_data(ttl=30, show_spinner=False)
+def get_lifetime_stats(user_id):
+    today = date.today()
+    untimed = supabase.table("swims")\
+        .select("swim_date", "distance_m")\
+        .eq("user_id", user_id)\
+        .lte("swim_date", today.isoformat())\
+        .execute()
+    timed = supabase.table("swims")\
+        .select("swim_date", "duration_seconds", "distance_m")\
+        .eq("user_id", user_id)\
+        .lte("swim_date", today.isoformat())\
+        .not_.is_("duration_seconds", "null")\
+        .execute()
+
+    total_swam = sum(row["distance_m"] for row in untimed.data)
+    total_timed_swam = sum(row["distance_m"] for row in timed.data)
+    total_spent = sum(row["duration_seconds"] for row in timed.data)
+    return total_swam, total_timed_swam, total_spent
+
+
 
 def clear_swim_caches():
     """Call right after any insert/delete of a swim so the graph shows fresh data."""
     get_last_7_days_totals.clear()
     get_group_totals.clear()
+    get_week_pace_stats.clear()
+    get_lifetime_stats.clear()
 
 
 def clear_membership_caches():
@@ -403,7 +442,7 @@ def show_member_popup(member, percentage):
 
     if st.button("Close"):
         st.session_state.show_pie_popup = False
-        st.rerun(scope="fragment")
+        st.rerun()
 
 @st.fragment
 def render_swim_section():
@@ -696,29 +735,11 @@ def render_swim_section():
             )
 
             # individual average pace (7 days)
-            total_week_seconds = 0
-
-            today = date.today()
-            a_week_ago = today - timedelta(days=6)
-
+            # individual average pace (7 days)
             try:
-                response = supabase.table("swims")\
-                    .select("swim_date", "duration_seconds", "distance_m")\
-                    .eq("user_id", st.session_state.current_user_id)\
-                    .gte("swim_date", a_week_ago.isoformat())\
-                    .lte("swim_date", today.isoformat())\
-                    .not_.is_("duration_seconds", "null")\
-                    .execute()
-
-                for row in response.data:
-                    total_week_seconds += row["duration_seconds"]
-
-                total_timed_week_meters = sum(
-                    row["distance_m"] for row in response.data
+                total_week_seconds, total_timed_week_meters = get_week_pace_stats(
+                    st.session_state.current_user_id
                 )
-
-                # ok now we have total distance swam (with times added on - otherwise it doesnt count)
-                # in the week, and total time taken in the week
 
                 if total_timed_week_meters > 0:
                     raw_pace_seconds = (total_week_seconds / total_timed_week_meters) * 100
@@ -753,35 +774,14 @@ def render_swim_section():
             )
 
             try:
-                total_swam = 0
-                total_spent = 0
-                total_timed_swam = 0
-                today = date.today()
-
-                untimed = supabase.table("swims")\
-                    .select("swim_date", "distance_m")\
-                    .eq("user_id", st.session_state.current_user_id)\
-                    .lte("swim_date", today.isoformat())\
-                    .execute()
-
-                timed = supabase.table("swims")\
-                    .select("swim_date", "duration_seconds", "distance_m")\
-                    .eq("user_id", st.session_state.current_user_id)\
-                    .lte("swim_date", today.isoformat())\
-                    .not_.is_("duration_seconds", "null")\
-                    .execute()
-
-                for row in untimed.data:
-                    total_swam += row["distance_m"]
+                total_swam, total_timed_swam, total_spent = get_lifetime_stats(
+                    st.session_state.current_user_id
+                )
 
                 st.markdown(
                     f"<div style='display:flex; justify-content:space-between; align-items:center; padding:10px 4px; border-bottom:1px solid rgba(6,48,74,0.18); color:#06304a;'><span style='font-weight:600;'>Total individual distance</span><span style='font-weight:bold;'>{total_swam:,} m</span></div>",
                     unsafe_allow_html=True
                 )
-
-                for row in timed.data:
-                    total_timed_swam += row["distance_m"]
-                    total_spent += row["duration_seconds"]
 
                 if total_timed_swam > 0:
                     raw_pace_seconds = (total_spent / total_timed_swam) * 100
