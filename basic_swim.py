@@ -581,7 +581,14 @@ def render_swim_section():
                 days = [today - timedelta(days=i) for i in range(6, -1, -1)]
 
                 columns = st.columns(7, gap="small")
-
+                st.markdown("""
+                <style>
+                div[data-testid="stPopover"] div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:not(:last-child) {
+                    border-right: 1px solid rgba(6, 48, 74, 0.25);
+                    padding-right: 8px;
+                }
+                </style>
+                """, unsafe_allow_html=True)
                 for col, day in zip(columns, days):
                     with col:
                         st.markdown(
@@ -594,7 +601,7 @@ def render_swim_section():
 
                         if not swims:
                             st.markdown(
-                                "<div style='font-size:10px; text-align:center;'>—</div>",
+                                "<div style='font-size:9px; text-align:center;'>—</div>",
                                 unsafe_allow_html=True
                             )
 
