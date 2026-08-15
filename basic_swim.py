@@ -599,8 +599,15 @@ def render_swim_section():
                             )
 
                         for swim in swims:
+                            distance = swim["distance_m"]
+
+                            if distance % 1000 == 0:
+                                distance_text = f"{distance // 1000}km"
+                            else:
+                                distance_text = f"{distance}m"
+
                             if st.button(
-                                f'{swim["distance_m"]}m',
+                                distance_text,
                                 key=f'delete_swim_{swim["id"]}',
                                 width="stretch"
                             ):
@@ -614,6 +621,19 @@ def render_swim_section():
                                 st.rerun(scope="fragment")
             except Exception as e:
                 st.error(f"error: {e}")
+
+            st.markdown("""
+            <style>
+            div[data-testid="stPopover"] button {
+                font-size: 11px !important;
+            }
+            </style>
+            """, unsafe_allow_html=True)
+
+
+
+
+
     with cool_dividy_things2:
         if st.button("Refresh graph", width="stretch"):
             clear_swim_caches()
