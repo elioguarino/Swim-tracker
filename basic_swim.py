@@ -401,6 +401,10 @@ def show_member_popup(member, percentage):
     st.write(f"**Distance this week:** {sum(member['values']):,} m")
     st.write(f"**Share of group total:** {percentage:.1f}%")
 
+    if st.button("Close"):
+        st.session_state.show_pie_popup = False
+        st.rerun(scope="fragment")
+
 @st.fragment
 def render_swim_section():
     selected_group_ids = st.session_state.compare_group_ids or []
@@ -624,24 +628,31 @@ def render_swim_section():
 
                 # --------------------------------------------------------
                 # HANDLE PIE CLICK
+                # (plotly_events replays the last click on every rerun,
+                #  so only act when it's genuinely a *new* click)
                 # --------------------------------------------------------
                 if clicked_points:
                     clicked_point = clicked_points[0]
+                    click_signature = (
+                        clicked_point.get("pointNumber"),
+                        clicked_point.get("pointIndex"),
+                    )
 
-                    clicked_index = clicked_point.get("pointNumber")
+                    if click_signature != st.session_state.get("last_pie_click_signature"):
+                        st.session_state.last_pie_click_signature = click_signature
 
-                    if clicked_index is None:
-                        clicked_index = clicked_point.get("pointIndex")
+                        clicked_index = clicked_point.get("pointNumber")
+                        if clicked_index is None:
+                            clicked_index = clicked_point.get("pointIndex")
 
-                    if clicked_index is not None:
-                        clicked_index = int(clicked_index)
+                        if clicked_index is not None:
+                            st.session_state.selected_pie_member = int(clicked_index)
+                            st.session_state.show_pie_popup = True
 
-                        st.session_state.selected_pie_member = clicked_index
-
-                        show_member_popup(
-                            group_data[clicked_index],
-                            percentages[clicked_index]
-                        )
+                if st.session_state.get("show_pie_popup"):
+                    idx = st.session_state.get("selected_pie_member")
+                    if idx is not None and idx < len(group_data):
+                        show_member_popup(group_data[idx], percentages[idx])
 
             else:
                 st.info("No swims logged by the group in the last 7 days yet.")
