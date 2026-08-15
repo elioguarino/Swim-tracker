@@ -561,7 +561,7 @@ def render_swim_section():
         # ------------------------------------------------------------
         # DELETE SWIM
         # ------------------------------------------------------------
-        with st.popover("Delete a swim", width="large"):
+        with st.popover("Delete a swim", width="stretch"):
             try:
                 last_week_swims = supabase.table("swims") \
                     .select("id, distance_m, swim_date") \
