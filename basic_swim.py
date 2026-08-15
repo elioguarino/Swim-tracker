@@ -585,7 +585,7 @@ def render_swim_section():
                 for col, day in zip(columns, days):
                     with col:
                         st.markdown(
-                            f"<div style='font-size:12px; font-weight:600; text-align:center;'>"
+                            f"<div style='font-size:11px; font-weight:600; text-align:center;'>"
                             f"{day.strftime('%A')}</div>",
                             unsafe_allow_html=True
                         )
