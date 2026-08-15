@@ -561,9 +561,28 @@ def render_swim_section():
         # ------------------------------------------------------------
         # DELETE SWIM
         # ------------------------------------------------------------
-        delete_last_swim = st.button("Delete last swim", width="stretch", key="delete_swim_btn")
-        if delete_last_swim:
+        delete_swim = st.button("Delete a swim", width="stretch", key="delete_swim_btn")
+        if delete_swim:
             try:
+                last_week_swims = supabase.table("swims") \
+                    .select("id, distance_m, swim_date")\
+                    .eq("user_id", st.session_state.current_user_id)\
+                    .gte("swim_date", (date.today() - timedelta(days=6)).isoformat())\
+                    .lte("swim_date", date.today().isoformat())\
+                    .execute()
+
+                
+
+
+
+
+
+
+
+
+
+
+
                 last_swim = supabase.table("swims") \
                     .select("id")\
                     .eq("user_id", st.session_state.current_user_id)\
