@@ -601,7 +601,7 @@ def render_swim_section():
 
                         if not swims:
                             st.markdown(
-                                "<div style='font-size:9px; text-align:center;'>—</div>",
+                                "<div style='font-size:8px; text-align:center;'>—</div>",
                                 unsafe_allow_html=True
                             )
 
