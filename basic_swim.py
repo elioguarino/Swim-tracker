@@ -561,7 +561,7 @@ def render_swim_section():
         # ------------------------------------------------------------
         # DELETE SWIM
         # ------------------------------------------------------------
-        with st.popover("Delete a swim", width="stretch"):
+        with st.popover("Delete a swim", width="large"):
             try:
                 last_week_swims = supabase.table("swims") \
                     .select("id, distance_m, swim_date") \
@@ -589,6 +589,7 @@ def render_swim_section():
                 }
                 </style>
                 """, unsafe_allow_html=True)
+
                 for col, day in zip(columns, days):
                     with col:
                         st.markdown(
